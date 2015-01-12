@@ -87,7 +87,7 @@ Ay Ad Lloop;
 ```
 is equivalent to
 ```
-@mult Rs,Rt // incomplete
+@mult Rs,Rt // imcomplete sample: lo <- Rs * Rt
 Z Rs Lns;                   // if Rs < 0 then Lns else Lps
 Lps:Rs Z; Z T2; Z Z Lmultu; // T2 <- Rs  = abs(Rs)
 Lns:Rs T2; dec T1;          // T2 <- -Rs = abs(Rs), T1 <- -1  
