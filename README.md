@@ -1,5 +1,5 @@
 # subleq-mips
-Implementatingf instruction of MIPS with subleq
+Implementation of MIPS instructions with subleq
 
 # Architecture
 ## Registers
