@@ -7,9 +7,9 @@ Each registers is mapped to the memory.
 
 | Address | Meaning |
 |---------|---------|
-| R0-R15 (=0x100-0x10f) | General registers |
+| R0-R15 (e.g. 0x100--0x10f) | General registers |
 | PC | |
-| lo, hi (=0x120-0x121) | for multiplication |
+| lo, hi (e.g. 0x120, 0x121) | for multiplication |
 | trap | interruption |
 
 ## Aliases
@@ -24,14 +24,14 @@ There are a few aliases.
 
 ## Special Registers
 For internal use.
-It allows to modify, but it should be resumed at the end of the subroutine.
+It also allows to modify, but they should be restored at the end of the subroutine.
 
 | Address | Comment |
 |---------|---------|
 | inc (4) | stores (-1) |
 | dec (5) | stores (+1) |
 | Z (6) | stores 0 |
-| T0-T7 (8-f) | temporary registers, stores 0 |
+| T0--T7 (8--f) | temporary registers, stores 0 |
 
 ## Special Addresses
 Following jump addresses have special meanings.
