@@ -17,10 +17,10 @@ There are a few aliases.
 
 | Address | Comment |
 |---------|---------|
-| Rd, Imm (=0) | |
-| Rs (=1) | |
-| Rt (=2) | |
-| Mem (=3) | the location whither the indirect reference points |
+| Rd, Imm (0) | |
+| Rs (1) | |
+| Rt (2) | |
+| Mem (3) | the location whither the indirect reference points |
 
 ## Special Registers
 For internal use.
@@ -41,16 +41,16 @@ Following jump addresses have special meanings.
 | End (-1)| implementation is end |
 
 ## Subroutine
-Name of subroutine that implements a MIPS instruction is "@[a-z]+".
+Name of subroutine that implements a MIPS instruction is "`@[a-z]+`".
 
-## Macroes
-Name of macro is "@@[a-z]+".
-Arguments of a macro are "A*".
-Macro expansion is like "(@@name Arg0,Arg1,Arg2)".
+## Macros
+Name of macro is "`@@[a-z]+`".
+Arguments of a macro are "`A[:alnum:]*`".
+Macro expansion is like "`(@@name Arg0,Arg1,Arg2)`".
 
 # Format
 Format is as shown.
-The scope of internal labels "L*" is limited in a routine or a macro where the label lexically exists.
+The scope of internal labels "`L[:alnum:]*`" is limited in a routine or a macro where the label lexically exists.
 
 ## Examples
 ```
@@ -61,7 +61,7 @@ Rd; // clear Rd
 Z Rd;
 Z Z End;
 ```
-becames (and I assume `@add` is placed 0x1000)
+becomes (and I assume `@add` is placed 0x1000)
 ```
 1 6 3
 2 6 6
@@ -85,7 +85,7 @@ Lend:T1; T2; Z Z End;
 Lloop:dec Ax Aend;
 Ay Ad Lloop;
 ```
-is equvalent to
+is equivalent to
 ```
 @mult Rs,Rt // incomplete
 Z Rs Lns;                   // if Rs < 0 then Lns else Lps
