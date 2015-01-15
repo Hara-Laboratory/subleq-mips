@@ -83,7 +83,7 @@ Z Rs Lns;                   // if Rs < 0 then Lns else Lps
 Lps:Rs Z; Z T2; Z Z Lmultu; // T2 <- Rs  = abs(Rs)
 Lns:Rs T2; Dec T1;          // T2 <- -Rs = abs(Rs), T1 <- -1  
 Lmultu:Lo;                  // it's ok because Rt and lo are not aliased.
-$(multu Lo,T2,Rt,Linv);    // lo <- abs(Rs) * (-Rt)
+$(@@multu Lo,T2,Rt,Linv);    // lo <- abs(Rs) * (-Rt)
 Linv:Z T1 Lend;             // if Rs < 0 (i.e. T1 < 0) then Lend else next
 Lo T1; T1 Z; Lo; Z lo Lend; // (in this case Rs >= 0 and T1 = 0), lo <- -lo
 Lend:T1; T2; Z Z End;
@@ -99,7 +99,7 @@ Z Rs Lns;                   // if Rs < 0 then Lns else Lps
 Lps:Rs Z; Z T2; Z Z Lmultu; // T2 <- Rs  = abs(Rs)
 Lns:Rs T2; Dec T1;          // T2 <- -Rs = abs(Rs), T1 <- -1  
 Lmultu:Lo;                  // it's ok because Rt and lo are not aliased.
-// (@@multu Lo,T2,Rt,Linv);    // lo <- abs(Rs) * (-Rt)
+// $(@@multu Lo,T2,Rt,Linv);    // lo <- abs(Rs) * (-Rt)
 Lmultuloop:Dec T2 Linv;
 Rt Lo Lmultuloop;
 
