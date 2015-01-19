@@ -1,6 +1,9 @@
 # subleq-mips
 Implementation of MIPS instructions with subleq
 
+# License
+All files are licensed by GPLv3 or later.
+
 # Architecture
 ## Registers
 Each registers is mapped to the memory.
