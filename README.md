@@ -10,10 +10,10 @@ Each registers is mapped to the memory.
 
 | Address | Meaning |
 |---------|---------|
-| R0-R15 (e.g. 0x100--0x10f) | General registers |
+| R0–R15 (e.g. 0x100–0x10f) | General registers |
 | PC | |
-| lo, hi (e.g. 0x120, 0x121) | for multiplication |
-| trap | interruption |
+| Lo, Hi (e.g. 0x120, 0x121) | for multiplication |
+| Trap | interruption |
 
 ## Aliases
 There are a few aliases.
@@ -31,10 +31,10 @@ It also allows to modify, but they should be restored at the end of the subrouti
 
 | Address | Comment |
 |---------|---------|
-| inc (4) | stores (-1) |
-| dec (5) | stores (+1) |
+| Inc (4) | stores (-1) |
+| Dec (5) | stores (+1) |
 | Z (6) | stores 0 |
-| T0--T7 (8--f) | temporary registers, stores 0 |
+| T0–T7 (8–f) | temporary registers, stores 0 |
 
 ## Special Addresses
 Following jump addresses have special meanings.
@@ -43,17 +43,24 @@ Following jump addresses have special meanings.
 |---------|---------|
 | End (-1)| implementation is end |
 
+## Intructions
+We'll use new instruction in addition to usual subleq.
+The type of intsruction is denoted "`![a-z]+`".
+The default when the instruction is ommitted is `!subleq`.
+
 ## Subroutine
 Name of subroutine that implements a MIPS instruction is "`@[a-z]+`".
 
 ## Macros
 Name of macro is "`@@[a-z]+`".
 Arguments of a macro are "`A[:alnum:]*`".
-Macro expansion is like "`(@@name Arg0,Arg1,Arg2)`".
+Macro expansion is like "`$(name Arg0,Arg1,Arg2)`".
 
 # Format
 Format is as shown.
 The scope of internal labels "`L[:alnum:]*`" is limited in a routine or a macro where the label lexically exists.
+
+Comment is as same as that defined in C11.
 
 ## Examples
 ```
@@ -70,22 +77,22 @@ becomes (and I assume `@add` is placed 0x1000)
 2 6 6
 0 0 9
 6 0 c
-6 6 -1
+6 6 (-1)
 ```
 
 ```
 @mult Rs,Rt // incomplete
 Z Rs Lns;                   // if Rs < 0 then Lns else Lps
 Lps:Rs Z; Z T2; Z Z Lmultu; // T2 <- Rs  = abs(Rs)
-Lns:Rs T2; dec T1;          // T2 <- -Rs = abs(Rs), T1 <- -1  
-Lmultu:lo;                  // it's ok because Rt and lo are not aliased.
-(@@multu lo,T2,Rt,Linv);    // lo <- abs(Rs) * (-Rt)
+Lns:Rs T2; Dec T1;          // T2 <- -Rs = abs(Rs), T1 <- -1  
+Lmultu:Lo;                  // it's ok because Rt and lo are not aliased.
+$(@@multu Lo,T2,Rt,Linv);    // lo <- abs(Rs) * (-Rt)
 Linv:Z T1 Lend;             // if Rs < 0 (i.e. T1 < 0) then Lend else next
-lo T1; T1 Z; lo; Z lo Lend; // (in this case Rs >= 0 and T1 = 0), lo <- -lo
+Lo T1; T1 Z; Lo; Z lo Lend; // (in this case Rs >= 0 and T1 = 0), lo <- -lo
 Lend:T1; T2; Z Z End;
 
 @@multu Ad,Ax,Ay,Aend // internal subroutine macro: Ad <- Ax * (-Ay) + Ad; assumes Ax >= 0; modifies Ax, Ad
-Lloop:dec Ax Aend;
+Lloop:Dec Ax Aend;
 Ay Ad Lloop;
 ```
 is equivalent to
@@ -93,14 +100,14 @@ is equivalent to
 @mult Rs,Rt // imcomplete sample: lo <- Rs * Rt
 Z Rs Lns;                   // if Rs < 0 then Lns else Lps
 Lps:Rs Z; Z T2; Z Z Lmultu; // T2 <- Rs  = abs(Rs)
-Lns:Rs T2; dec T1;          // T2 <- -Rs = abs(Rs), T1 <- -1  
-Lmultu:lo;                  // it's ok because Rt and lo are not aliased.
-// (@@multu lo,T2,Rt,Linv);    // lo <- abs(Rs) * (-Rt)
-Lmultuloop:dec T2 Linv;
-Rt lo Lmultuloop;
+Lns:Rs T2; Dec T1;          // T2 <- -Rs = abs(Rs), T1 <- -1  
+Lmultu:Lo;                  // it's ok because Rt and lo are not aliased.
+// $(@@multu Lo,T2,Rt,Linv);    // lo <- abs(Rs) * (-Rt)
+Lmultuloop:Dec T2 Linv;
+Rt Lo Lmultuloop;
 
 Linv:Z T1 Lend;             // if Rs < 0 (i.e. T1 < 0) then Lend else next
-lo T1; T1 Z; lo; Z lo Lend; // (in this case Rs >= 0 and T1 = 0), lo <- -lo
+Lo T1; T1 Z; Lo; Z Lo Lend; // (in this case Rs >= 0 and T1 = 0), lo <- -lo
 Lend:T1; T2; Z Z End;
 ```
 and (and I assume `@mult` is placed 0x2000)
@@ -121,5 +128,5 @@ and (and I assume `@mult` is placed 0x2000)
 2027:   6 120 202a // Z lo Lend;
 202a:   9   9 202d // Lend:T1;
 202d:  10  10 2030 // T2;
-2030:   6   6   -1 // Z Z End;
+2030:   6   6 (-1) // Z Z End;
 ```
