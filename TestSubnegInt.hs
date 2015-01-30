@@ -5,13 +5,14 @@ import Language.Subleq.Model.Prim
 import Language.Subleq.Model.Memory as Mem
 import Language.Subleq.Model.Architecture.IntMachine
 import qualified Language.Subleq.Model.InstructionSet.Subleq as Subleq
+import qualified Language.Subleq.Model.InstructionSet.Subneg as Subneg
 import qualified Language.Subleq.Assembly as A
 import Text.Parsec
 import Control.Applicative
 import Text.PrettyPrint hiding ((<+>))
 import qualified Text.PrettyPrint as PP
 import qualified Data.ByteString as B
--- import Data.Maybe
+import Data.Maybe
 -- import Data.Map (Map)
 import qualified Data.Map as M
 import Data.FileEmbed
@@ -22,32 +23,29 @@ import Test.QuickCheck
 -- import Test.QuickCheck.Text
 -- import Test.QuickCheck.All
 
-testSubleq :: [IntSubleqState]
-testSubleq = snd $ runMachineWithHistory Subleq.step Subleq.initialMachine
-
 subleqRoutines :: B.ByteString
-subleqRoutines = $(embedFile "subleq-int.sq")
+subleqRoutines = $(embedFile "subneg-int.sq")
 
 subleqModule :: A.Module
 subleqModule = either (error . show) A.expandMacroAll $ parse A.parseModule "parserModule" subleqRoutines
 
 inc, dec :: Integer
-inc = 0x14
-dec = 0x15
+inc = 0x4
+dec = 0x5
 
 subleqMA :: A.MemoryArchitecture (M.Map Integer Integer)
 subleqMA = A.MemoryArchitecture { A.instructionLength = 3
                                 , A.wordLength = 1
                                 , A.locateArg = A.locateArgDefault
                                 , A.locateStatic = M.fromList [ ("End", -0x1)
-                                                              , ("Inc", 0x14)
-                                                              , ("Dec", 0x15)
-                                                              , ("Z",   0x16)
-                                                              , ("T0",  0x18)
-                                                              , ("T1",  0x19)
-                                                              , ("T2",  0x1a)
-                                                              , ("T3",  0x1b)
-                                                              , ("T4",  0x1c)
+                                                              , ("Inc", 0x4)
+                                                              , ("Dec", 0x5)
+                                                              , ("Z", 0x6)
+                                                              , ("T0", 0x8)
+                                                              , ("T1", 0x9)
+                                                              , ("T2", 0xa)
+                                                              , ("T3", 0xb)
+                                                              , ("T4", 0xc)
                                                               -- , ("Lo", 0x120)
                                                               ]
                                 , A.writeWord = Mem.write
@@ -69,11 +67,11 @@ executeSubroutineWithStates mo x args mn = first (fmap (extractArgs &&& id)) . e
       exec :: Maybe Integer -> Integer -> (Maybe IntSubleqState, [IntSubleqState])
       exec (Just n') pc = if length (take (n+1) ss) <= n then (Just s, take n ss) else (Nothing, ss)
         where
-          (s, ss) = runMachineWithHistory Subleq.step (pc, writeArgs mem args')
+          (s, ss) = runMachineWithHistory Subneg.step (pc, writeArgs mem args')
           n = fromIntegral n'
       exec Nothing pc = (Just s, ss)
         where
-          (s, ss) = runMachineWithHistory Subleq.step (pc, writeArgs mem args')
+          (s, ss) = runMachineWithHistory Subneg.step (pc, writeArgs mem args')
 
 
 maximumTry :: Maybe Integer
@@ -101,18 +99,8 @@ prop_Floor2pow (NonNegative a) (NonNegative b) (NonNegative c)  = a' == a && r1 
     where
       [r1, r2, a'] = executeSubroutine "floor2pow" [b, c, a]
 
-prop_Bne :: Integer -> Integer -> Integer -> Integer -> Bool
-prop_Bne rs rt off pc  = [rs', rt', off'] == [rs, rt, off] && ((rs == rt && pc' == pc + off) || (rs /= rt && pc' == pc))
-    where
-      [rs', rt', off', pc'] = executeSubroutine "bne" [rs, rt, off, pc]
-
-prop_BneA :: Integer -> Integer -> Integer -> Bool
-prop_BneA rs off pc  = [rs', off'] == [rs, off] && pc' == pc + off
-    where
-      [rs', off', pc'] = executeSubroutine "bnea" [rs, off, pc]
-
 showIntSubleqState :: IntSubleqState -> Doc
-showIntSubleqState (pc, mem) = integer pc <> colon PP.<+> hsep (map (\a-> integer $ Mem.read a mem) [0..15]) PP.<+> colon PP.<+> hsep (map (\a-> integer $ Mem.read a mem) [16..31]) PP.<+> colon PP.<+> integer (Mem.read 0x120 mem) PP.<+> colon PP.<+>  hsep (map (\a-> integer $ Mem.read a mem) [pc..(pc+2)])
+showIntSubleqState (pc, mem) = integer pc <> colon PP.<+> hsep (map (\a-> integer $ Mem.read a mem) [0..16]) PP.<+> colon PP.<+> integer (Mem.read 0x120 mem) PP.<+> colon PP.<+>  hsep (map (\a-> integer $ Mem.read a mem) [pc..(pc+2)])
 
 printExecution :: Maybe (Maybe ([Integer], IntSubleqState), [IntSubleqState]) -> Doc
 printExecution Nothing = text "Subroutine not found"
