@@ -60,10 +60,10 @@ LBody:S2 Rd; S2; Rd S2; Z Z Loop;
 
 @srl Rd, Rt, Sa
 Rt T1; Rd;
-CW T0; Sa CW;
-Loop:Dec CW LFinish;
-$(@@sl1d T2, Rd, Rt, Loop);
-LFinish:T0 CW; Z Z End;
+Sa T0; CW Sa;
+Loop:Inc Sa LBody;
+LFinish:Sa; T0 Sa; Rt; T1 Rt; Z Z End;
+LBody:$(@@sl1d T2, Rd, Rt, Loop);
 
 @srl1dTest Rd, Rh, Rl
 $(@@sl1d Rd, Rh, Rl, End);
@@ -72,7 +72,8 @@ $(@@sl1d Rd, Rh, Rl, End);
 $(@@sl1m Ah, L1); L1:Ad;
 Z Al Lzn;
 Lp:$(@@sl1m Al, Aend);
-Lzn:Al Z Lp; Z; Inc Ad; Inc Ah; $(@@sl1m Al, Aend);
+Lzn:Inc Al Ln; Dec Al Lp;
+Ln:Dec Al; Inc Ad; Inc Ah; $(@@sl1m Al, Aend);
 
 @@sl1 Ad, As, Aend
 As Z; Ad; Z Ad; Z Ad; Z Z Aend;
