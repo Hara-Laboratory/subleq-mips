@@ -34,7 +34,8 @@ It also allows to modify, but they should be restored at the end of the subrouti
 | Inc (4) | stores (-1) |
 | Dec (5) | stores (+1) |
 | Z (6) | stores 0 |
-| T0–T7 (8–f) | temporary registers, stores 0 |
+| T0–T6 (8–e) | temporary registers, stores 0 |
+| Word (f) | stores word size (=32) |
 
 ## Special Addresses
 Following jump addresses have special meanings.
