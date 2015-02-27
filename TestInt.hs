@@ -25,6 +25,9 @@ import Test.QuickCheck
 testSubleq :: [IntSubleqState]
 testSubleq = snd $ runMachineWithHistory Subleq.step Subleq.initialMachine
 
+locateArg :: A.LocateArg
+locateArg xs = M.fromList $ zip xs [0..3]
+
 subleqRoutines :: B.ByteString
 subleqRoutines = $(embedFile "subleq-int.sq")
 
@@ -32,22 +35,22 @@ subleqModule :: A.Module
 subleqModule = either (error . show) A.expandMacroAll $ parse A.parseModule "parserModule" subleqRoutines
 
 inc, dec :: Integer
-inc = 0x14
-dec = 0x15
+inc = 0x4
+dec = 0x5
 
 subleqMA :: A.MemoryArchitecture (M.Map Integer Integer)
 subleqMA = A.MemoryArchitecture { A.instructionLength = 3
                                 , A.wordLength = 1
-                                , A.locateArg = A.locateArgDefault
+                                , A.locateArg = locateArg
                                 , A.locateStatic = M.fromList [ ("End", -0x1)
-                                                              , ("Inc", 0x14)
-                                                              , ("Dec", 0x15)
-                                                              , ("Z",   0x16)
-                                                              , ("T0",  0x18)
-                                                              , ("T1",  0x19)
-                                                              , ("T2",  0x1a)
-                                                              , ("T3",  0x1b)
-                                                              , ("T4",  0x1c)
+                                                              , ("Inc", 0x4)
+                                                              , ("Dec", 0x5)
+                                                              , ("Z",   0x6)
+                                                              , ("T0",  0x8)
+                                                              , ("T1",  0x9)
+                                                              , ("T2",  0xa)
+                                                              , ("T3",  0xb)
+                                                              , ("T4",  0xc)
                                                               -- , ("Lo", 0x120)
                                                               ]
                                 , A.writeWord = Mem.write
