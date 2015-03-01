@@ -120,7 +120,7 @@ prop_Add a b c = [b + c, b, c] == executeSubroutine "add" [a, b, c]
 prop_Multu :: SubleqUWord -> SubleqUWord -> Bool
 prop_Multu b c  = fromIntegral a' == b * c
     where
-      [a', _, _] = executeSubroutine "multu" $ map fromIntegral [0, b, c]
+      [a', _, _] = executeSubroutine "multuLo" $ map fromIntegral [0, b, c]
 
 prop_Floor2pow :: NonNegative SubleqWord -> NonNegative SubleqWord -> NonNegative SubleqWord -> Bool
 prop_Floor2pow (NonNegative a) (NonNegative b) (NonNegative c)  = a' == a && r1 <= a && (a == 0 || a < 2 * r1) && r2 == a `div` 2
