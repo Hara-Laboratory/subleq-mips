@@ -27,10 +27,18 @@ import Data.Bits
 import Data.Function
 import Text.Printf
 
+{-
 type SubleqWord = Int32
 type SubleqUWord = Word32
 wordLength :: (Integral a, Num a) => a
 wordLength = 32
+-}
+
+type SubleqWord = Int16
+type SubleqUWord = Word16
+wordLength :: (Integral a, Num a) => a
+wordLength = 16
+
 
 type Fix2SubleqMemory = M.Map SubleqWord SubleqWord
 type Fix2SubleqState = SubleqState SubleqWord SubleqWord Fix2SubleqMemory
@@ -117,8 +125,8 @@ prop_Add a b c = [b + c, b, c] == executeSubroutine "add" [a, b, c]
 -- prop_Mult :: SubleqWord -> SubleqWord -> SubleqWord -> Bool
 -- prop_Mult a b c = [b * c, b, c] == executeSubroutine "mult" [a, b, c]
 
-prop_Multu :: SubleqUWord -> SubleqUWord -> Bool
-prop_Multu b c  = fromIntegral a' == b * c
+prop_MultuLo :: SubleqUWord -> SubleqUWord -> Bool
+prop_MultuLo b c  = fromIntegral a' == b * c
     where
       [a', _, _] = executeSubroutine "multuLo" $ map fromIntegral [0, b, c]
 
@@ -149,16 +157,36 @@ prop_Srl rd rt sa  = [rt', s'] == [rt, s] && rd' == rt `shift` (-(fromIntegral s
       s = sa `mod` wordLength
       [rd', rt', s'] = map fromIntegral $ executeSubroutine "srl" $ map fromIntegral [rd, rt, s]
 
-prop_Srl1dTest :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
-prop_Srl1dTest rd rh rl  = rd' == s && rl' == rl `shift` 1 && rh' == (rh `shift` 1) + s
+prop_Srl1dTest :: SubleqUWord -> SubleqUWord -> Bool
+prop_Srl1dTest rh rl  = rl' == rl `shift` 1 && rh' == (rh `shift` 1) + s
     where
       s = rl `shift` (1 - wordLength)
-      [rd', rh', rl'] = map fromIntegral $ executeSubroutine "srl1dTest" $ map fromIntegral [rd, rh, rl]
+      [rh', rl'] = map fromIntegral $ executeSubroutine "srl1dTest" $ map fromIntegral [rh, rl]
+
+prop_Srl1dcTest :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Srl1dcTest rd rh rl  = rd' == s && rl' == rl `shift` 1 && rh' == (rh `shift` 1) + s
+    where
+      s = rl `shift` (1 - wordLength)
+      [rd', rh', rl'] = map fromIntegral $ executeSubroutine "srl1dcTest" $ map fromIntegral [rd, rh, rl]
 
 srl1dTestCd :: SubleqUWord -> SubleqUWord -> SubleqUWord -> (SubleqUWord, SubleqUWord, SubleqUWord)
 srl1dTestCd rd rh rl  = (s, (rh `shift` 1) + s, rl `shift` 1)
     where
       s = rl `shift` (1 - wordLength)
+
+prop_Multu :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Multu hi lo rs rt  = rs' == rs && rt' == rt && (iHi `shift` wordLength) + iLo == iRs * iRt
+    where
+      iHi, iLo, iRs, iRt :: Integer
+      [iHi, iLo, iRs, iRt] = map fromIntegral [hi', lo', rs', rt']
+      [hi', lo', rs', rt'] = map fromIntegral $ executeSubroutine "multu" $ map fromIntegral [hi, lo, rs, rt]
+
+prop_Mult :: SubleqWord -> SubleqWord -> SubleqWord -> SubleqWord -> Bool
+prop_Mult hi lo rs rt  = rs' == rs && rt' == rt && (iHi `shift` wordLength) + iLo == iRs * iRt
+    where
+      iHi, iLo, iRs, iRt :: Integer
+      [iHi, iLo, iRs, iRt] = map fromIntegral [hi', fromIntegral lo' :: SubleqUWord, rs', rt']
+      [hi', lo', rs', rt'] = executeSubroutine "mult" [hi, lo, rs, rt]
 
 showFix2SubleqState :: Fix2SubleqState -> Doc
 showFix2SubleqState (pc, mem) = integer (fromIntegral pc) <> colon PP.<+> hsep (map (\a-> integer $ memread a mem) [0..15]) PP.<+> colon PP.<+> hsep (map (\a-> integer $ memread a mem) [16..31]) PP.<+> colon PP.<+> integer (memread 0x120 mem) PP.<+> colon PP.<+>  hsep (map (\a-> integer $ memread a mem) [pc..(pc+2)])

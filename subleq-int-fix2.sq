@@ -5,28 +5,6 @@ Rd; // clear Rd
 Z Rd;
 Z Z End;
 
-@multLo Lo,Rs,Rt // incomplete
-Z Rs Lsns;                   // if Rs < 0 then Lns else Lps
-Lsps:Rs Z; Z T2; Z Z Lct; 		// T2 <- Rs  = abs(Rs)
-Lsns:Rs T2; Dec T1;          // T2 <- T2-Rs = abs(Rs), T1 <- -1  
-Lct:Z Rt Ltns;                   // if Rs < 0 then Lns else Lps
-Ltps:Rt Z; Z T3; Z Z Lmultu; 		// T2 <- 2*Rs  = abs(Rs)
-Ltns:Rt T3; Dec T1;          // T2 <- T2-Rs = abs(Rs), T1 <- -1  
-Lmultu:Lo;                  // it's ok because Rt and lo are not aliased.
-$(@@multuSub Lo,T2,T3,Linv);    // lo <- abs(Rs) * (-Rt)
-Linv:Z T1 Linvloop;          // if Rs <= 0 (i.e. T1 < 0) then Linvloop else next
-Lend:T1; T2; Z Z End;
-Linvloop:T2; Lo T2; T3; T2 T3; Lo; T3 Lo; Inc T1 Linvloop; Z Z Lend;
-
-@multuLo Rd,Rx,Ry // internal subroutine macro: Ad <- Ax * (-Ay) + Ad; assumes Ax >= 0, Ay >= 0; modifies Ax, Ad
-Rd;
-$(@@multuSub Rd, Rx, Ry, End);
-
-@@multuSub Ad,Ax,Ay,Aend // internal subroutine macro: Ad <- Ax * (-Ay) + Ad; assumes Ax >= 0, Ay >= 0; modifies Ax, Ad
-Lloop:Z Ax Aend;
-Dec Ax;
-Ay Ad Lloop;
-
 @shl1 Rd,Rs
 Rs Z; // Z <- -Rs, it assumes Z = 0
 Rs Z; // Z <- Z - Rt = -(Rs + Rt)
@@ -63,21 +41,67 @@ Rt T1; Rd;
 Sa T0; CW Sa;
 Loop:Inc Sa LBody;
 LFinish:Sa; T0 Sa; Rt; T1 Rt; Z Z End;
-LBody:$(@@sl1d T2, Rd, Rt, Loop);
+LBody:$(@@sl1d Rd, Rt, Loop);
 
-@srl1dTest Rd, Rh, Rl
-$(@@sl1d Rd, Rh, Rl, End);
+@srl1dTest Rh, Rl
+$(@@sl1d Rh, Rl, End);
 
-@@sl1d Ad, Ah, Al, Aend
+@@sl1d Ah, Al, Aend
+$(@@sl1m Ah, L1); L1:Z Al Lzn;
+Lp:$(@@sl1m Al, Aend);
+Lzn:Inc Al Ln; Dec Al Lp;
+Ln:Dec Al; Inc Ah; $(@@sl1m Al, Aend);
+
+@srl1dcTest Rd, Rh, Rl
+$(@@sl1dc Rd, Rh, Rl, End);
+
+@@sl1dc Ad, Ah, Al, Aend
 $(@@sl1m Ah, L1); L1:Ad;
 Z Al Lzn;
 Lp:$(@@sl1m Al, Aend);
 Lzn:Inc Al Ln; Dec Al Lp;
 Ln:Dec Al; Inc Ad; Inc Ah; $(@@sl1m Al, Aend);
 
+@@sl1c Ad, Al, Aend
+L1:Ad;
+Z Al Lzn;
+Lp:$(@@sl1m Al, Aend);
+Lzn:Inc Al Ln; Dec Al Lp;
+Ln:Dec Al; Inc Ad; $(@@sl1m Al, Aend);
+
 @@sl1 Ad, As, Aend
 As Z; Ad; Z Ad; Z Ad; Z Z Aend;
 
 @@sl1m A, Aend
 A Z; Z A; Z Z Aend;
+
+@@jnzp A, An, Az, Ap
+Z A Lzn; Z Z Ap;
+Lzn:Inc A Ln; Dec A Az;
+Ln:Dec A An;
+
+@@addc Ah, Al, A, T, Aend
+$(@@jnzp Al, Lln, Llp, Llp);
+Lln:Inc T;
+Llp:$(@@jnzp A, Lan, Lap, Lap);
+Lan:Inc T;
+Lap:A Z; Z Al; Z;
+$(@@jnzp Al, Lxn, Lxp, Lxp);
+Lxn:Dec T;
+Lxp:Z T Ltnz;
+Ltp:Inc Ah;
+Ltnz:T T Aend;
+
+@multu Hi, Lo, Rs, Rt
+$(@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, End);
+
+@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, End
+Lo; Rs T1;
+CW T0;
+Loop:Inc T0 LBody;
+LFinish:T0; Rs; T1 Rs; T3; Z Z End;
+LBody:$(@@sl1d Hi, Lo, LBody2);
+LBody2:$(@@sl1c T3, Rs, LBody3);
+LBody3:Z T3 Loop;
+$(@@addc Hi, Lo, Rt, T2, Loop);
 
