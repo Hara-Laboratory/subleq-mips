@@ -69,6 +69,8 @@ subleqMA = A.MemoryArchitecture { A.instructionLength = 3
                                                               , ("T2",  0xa)
                                                               , ("T3",  0xb)
                                                               , ("T4",  0xc)
+                                                              , ("T5",  0xd)
+                                                              , ("T6",  0xe)
                                                               , ("CW",  0xf)
                                                               -- , ("Lo", 0x120)
                                                               ]
@@ -174,6 +176,12 @@ srl1dTestCd rd rh rl  = (s, (rh `shift` 1) + s, rl `shift` 1)
     where
       s = rl `shift` (1 - wordLength)
 
+prop_Sra :: SubleqWord -> SubleqWord -> SubleqWord -> Bool
+prop_Sra rd rt sa  = [rt', s'] == [rt, s] && rd' == rt `shift` (-(fromIntegral s))
+    where
+      s = sa `mod` wordLength
+      [rd', rt', s'] = map fromIntegral $ executeSubroutine "sra" $ map fromIntegral [rd, rt, s]
+
 prop_Multu :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
 prop_Multu hi lo rs rt  = rs' == rs && rt' == rt && (iHi `shift` wordLength) + iLo == iRs * iRt
     where
@@ -181,12 +189,28 @@ prop_Multu hi lo rs rt  = rs' == rs && rt' == rt && (iHi `shift` wordLength) + i
       [iHi, iLo, iRs, iRt] = map fromIntegral [hi', lo', rs', rt']
       [hi', lo', rs', rt'] = map fromIntegral $ executeSubroutine "multu" $ map fromIntegral [hi, lo, rs, rt]
 
-prop_Mult :: SubleqWord -> SubleqWord -> SubleqWord -> SubleqWord -> Bool
-prop_Mult hi lo rs rt  = rs' == rs && rt' == rt && (iHi `shift` wordLength) + iLo == iRs * iRt
+prop_MultD :: SubleqWord -> SubleqWord -> SubleqWord -> SubleqWord -> Bool
+prop_MultD hi lo rs rt  = (iHi `shift` wordLength) + iLo == iRs * iRt
     where
       iHi, iLo, iRs, iRt :: Integer
-      [iHi, iLo, iRs, iRt] = map fromIntegral [hi', fromIntegral lo' :: SubleqUWord, rs', rt']
+      iLo = fromIntegral (fromIntegral lo' :: SubleqUWord)
+      [iHi, iRs, iRt] = map fromIntegral [hi', rs, rt]
+      [hi', lo', _, _] = executeSubroutine "multD" [hi, lo, rs, rt]
+
+prop_Mult :: SubleqWord -> SubleqWord -> SubleqWord -> SubleqWord -> Bool
+prop_Mult hi lo rs rt  = [rs', rt'] == [rs, rt] && (iHi `shift` wordLength) + iLo == iRs * iRt
+    where
+      iHi, iLo, iRs, iRt :: Integer
+      iLo = fromIntegral (fromIntegral lo' :: SubleqUWord)
+      [iHi, iRs, iRt] = map fromIntegral [hi', rs, rt]
       [hi', lo', rs', rt'] = executeSubroutine "mult" [hi, lo, rs, rt]
+
+multD hi lo rs rt  = ([(iHi `shift` wordLength) + iLo, (iHi `shift` wordLength), iHi, iLo, iRs, iRt], (iHi `shift` wordLength) + iLo == iRs * iRt)
+    where
+      iHi, iLo, iRs, iRt :: Integer
+      iLo = fromIntegral (fromIntegral lo' :: SubleqUWord)
+      [iHi, iRs, iRt] = map fromIntegral [hi', rs, rt]
+      [hi', lo', _, _] = executeSubroutine "multD" [hi, lo, rs, rt]
 
 showFix2SubleqState :: Fix2SubleqState -> Doc
 showFix2SubleqState (pc, mem) = integer (fromIntegral pc) <> colon PP.<+> hsep (map (\a-> integer $ memread a mem) [0..15]) PP.<+> colon PP.<+> hsep (map (\a-> integer $ memread a mem) [16..31]) PP.<+> colon PP.<+> integer (memread 0x120 mem) PP.<+> colon PP.<+>  hsep (map (\a-> integer $ memread a mem) [pc..(pc+2)])
