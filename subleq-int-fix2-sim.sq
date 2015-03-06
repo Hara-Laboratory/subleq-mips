@@ -1,4 +1,4 @@
-@addu Rd,Rs,Rt,Rd
+@addu Rd,Rs,Rt
 Rs Z; // Z <- -Rs, it assumes Z = 0
 Rt Z; // Z <- Z - Rt = -(Rs + Rt)
 Rd; // clear Rd
@@ -54,7 +54,7 @@ Loop:Inc Sa LBody;
 LFinish:Sa; T0 Sa; Rt; T1 Rt; Z Z End;
 LBody:$(@@sl1d Rd, Rt, Loop);
 
-@sra Rd,Rt, Sa,
+@sra Rd,Rt, Sa
 Rt T1; Rd;
 $(@@jnzp Rt, Ln, Lzp, Lzp);
 Ln:Dec Rd;
