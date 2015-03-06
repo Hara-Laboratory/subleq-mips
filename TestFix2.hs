@@ -122,7 +122,16 @@ prop_WordIntTrip a = a == fromIntegral w
       w = fromIntegral a
 
 prop_Add :: SubleqWord -> SubleqWord -> SubleqWord -> Bool
-prop_Add a b c = [b + c, b, c] == executeSubroutine "add" [a, b, c]
+prop_Add a b c = [b + c, b, c] == executeSubroutine "addu" [a, b, c]
+
+prop_Sub :: SubleqWord -> SubleqWord -> SubleqWord -> Bool
+prop_Sub a b c = [b - c, b, c] == executeSubroutine "subu" [a, b, c]
+
+prop_Mflo :: SubleqWord -> SubleqWord -> Bool
+prop_Mflo a lo = [lo, lo] == executeSubroutine "mflo" [a, lo]
+
+prop_Mtlo :: SubleqWord -> SubleqWord -> Bool
+prop_Mtlo lo a = [a, a] == executeSubroutine "mtlo" [lo, a]
 
 -- prop_Mult :: SubleqWord -> SubleqWord -> SubleqWord -> Bool
 -- prop_Mult a b c = [b * c, b, c] == executeSubroutine "mult" [a, b, c]

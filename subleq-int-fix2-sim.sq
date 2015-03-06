@@ -15,22 +15,26 @@ Z Z End;
 
 @mflo Rd,Rs,Rt
 Rd;
-Lo Rd;
+Lo Z;
+Z Rd;
 Z Z End;
 
 @mfhi Rd,Rs,Rt
 Rd;
-Hi Rd;
+Hi Z;
+Z Rd;
 Z Z End;
 
 @mtlo Rd,Rs,Rt
 Lo;
-Rs Lo;
+Rs Z;
+Z Lo;
 Z Z End;
 
 @mthi Rd,Rs,Rt
 Hi;
-Rs Hi;
+Rs Z;
+Z Hi;
 Z Z End;
 
 @sll Rd,Rt,Sa
