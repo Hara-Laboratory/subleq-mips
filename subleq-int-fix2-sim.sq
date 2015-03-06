@@ -1,8 +1,36 @@
-@add Rs,Rt,Rd
+@addu Rs,Rt,Rd
 Rs Z; // Z <- -Rs, it assumes Z = 0
 Rt Z; // Z <- Z - Rt = -(Rs + Rt)
 Rd; // clear Rd
 Z Rd;
+Z Z End;
+
+@subu Rs,Rt,Rd
+Rs Z;
+Rt T0;
+T0 Z;
+Rd;
+Z Rd;
+Z Z End;
+
+@mflo Rs,Rt,Rd
+Rd;
+Lo Rd;
+Z Z End;
+
+@mfhi Rs,Rt,Rd
+Rd;
+Hi Rd;
+Z Z End;
+
+@mtlo Rs,Rt,Rd
+Lo;
+Rs Lo;
+Z Z End;
+
+@mthi Rs,Rt,Rd
+Hi;
+Rs Hi;
 Z Z End;
 
 @sll Rt, Sa, Rd
