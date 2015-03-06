@@ -1,11 +1,11 @@
-@addu Rs,Rt,Rd
+@addu Rd,Rs,Rt,Rd
 Rs Z; // Z <- -Rs, it assumes Z = 0
 Rt Z; // Z <- Z - Rt = -(Rs + Rt)
 Rd; // clear Rd
 Z Rd;
 Z Z End;
 
-@subu Rs,Rt,Rd
+@subu Rd,Rs,Rt
 Rs Z;
 Rt T0;
 T0 Z;
@@ -13,27 +13,27 @@ Rd;
 Z Rd;
 Z Z End;
 
-@mflo Rs,Rt,Rd
+@mflo Rd,Rs,Rt
 Rd;
 Lo Rd;
 Z Z End;
 
-@mfhi Rs,Rt,Rd
+@mfhi Rd,Rs,Rt
 Rd;
 Hi Rd;
 Z Z End;
 
-@mtlo Rs,Rt,Rd
+@mtlo Rd,Rs,Rt
 Lo;
 Rs Lo;
 Z Z End;
 
-@mthi Rs,Rt,Rd
+@mthi Rd,Rs,Rt
 Hi;
 Rs Hi;
 Z Z End;
 
-@sll Rt, Sa, Rd
+@sll Rd,Rt,Sa
 $(@@sllsub Rd, Rt, Sa, T0, T1, End);
 
 @@sllsub Rd, Rt, Sa, S1, S2, Aend
@@ -43,14 +43,14 @@ Loop:Inc S1 LBody;
 LFinish:S2; S1 S1 Aend;
 LBody:S2 Rd; S2; Rd S2; Z Z Loop;
 
-@srl Rt, Sa, Rd
+@srl Rd,Rt, Sa
 Rt T1; Rd;
 Sa T0; CW Sa;
 Loop:Inc Sa LBody;
 LFinish:Sa; T0 Sa; Rt; T1 Rt; Z Z End;
 LBody:$(@@sl1d Rd, Rt, Loop);
 
-@sra Rt, Sa, Rd
+@sra Rd,Rt, Sa,
 Rt T1; Rd;
 $(@@jnzp Rt, Ln, Lzp, Lzp);
 Ln:Dec Rd;
