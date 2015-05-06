@@ -12,8 +12,10 @@ import Text.PrettyPrint hiding ((<+>))
 import qualified Text.PrettyPrint as PP
 import qualified Data.ByteString as B
 -- import Data.Maybe
--- import Data.Map (Map)
+import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Set (Set)
+import qualified Data.Set as S
 import Data.FileEmbed
 -- import Control.Monad.State
 -- import Control.Lens
@@ -103,11 +105,16 @@ executeSubroutineWithStates mo x args mn = first (fmap (extractArgs &&& id)) . e
 maximumTry :: Maybe Integer
 maximumTry = Just 1000000
 
-executeSubroutine :: A.Id -> [SubleqWord] -> [SubleqWord] 
-executeSubroutine x args = case executeSubroutineWithStates subleqModule x args maximumTry of
-                             Just (Just (res, _), _) ->  res
+executeSubroutineWithModification :: A.Id -> [SubleqWord] -> ([SubleqWord], Set SubleqWord)
+executeSubroutineWithModification x args = case executeSubroutineWithStates subleqModule x args maximumTry of
+                             Just (Just (res, end), (init:_)) ->  (res, changedAddresses end init)
                              Just (Nothing, _) -> error "Not terminated"
                              Nothing -> error "Not found"
+
+executeSubroutine :: A.Id -> [SubleqWord] -> [SubleqWord] 
+executeSubroutine x args = if diffs `S.isSubsetOf` S.fromList [0..(fromIntegral $ length args - 1)] then res else error $ "it corrupses: " ++ show diffs
+    where
+      (res, diffs) = executeSubroutineWithModification x args
 
 prop_IntWordTrip :: Int8 -> Bool
 prop_IntWordTrip a = a == fromIntegral w
@@ -214,6 +221,16 @@ prop_Mult hi lo rs rt  = [rs', rt'] == [rs, rt] && (iHi `shift` wordLength) + iL
       [iHi, iRs, iRt] = map fromIntegral [hi', rs, rt]
       [hi', lo', rs', rt'] = executeSubroutine "mult" [hi, lo, rs, rt]
 
+prop_Slt :: SubleqWord -> SubleqWord -> SubleqWord -> Bool
+prop_Slt rd rs rt  = [rd', rs', rt'] == [if rs < rt then 1 else 0, rs, rt]
+    where
+      [rd', rs', rt'] = executeSubroutine "slt"  [rd, rs, rt]
+
+prop_Sltu :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Sltu rd rs rt  = [rd', rs', rt'] == [if rs < rt then 1 else 0, rs, rt]
+    where
+      [rd', rs', rt'] = map fromIntegral $ executeSubroutine "sltu" $ map fromIntegral [rd, rs, rt]
+
 multD hi lo rs rt  = ([(iHi `shift` wordLength) + iLo, (iHi `shift` wordLength), iHi, iLo, iRs, iRt], (iHi `shift` wordLength) + iLo == iRs * iRt)
     where
       iHi, iLo, iRs, iRt :: Integer
@@ -229,9 +246,21 @@ showFix2SubleqState (pc, mem) = integer (fromIntegral pc) <> colon PP.<+> hsep (
 printExecution :: Maybe (Maybe ([SubleqWord], Fix2SubleqState), [Fix2SubleqState]) -> Doc
 printExecution Nothing = text "Subroutine not found"
 printExecution (Just (Nothing, ss)) = text "Non terminated" $$ vcat (take 50 $ map showFix2SubleqState ss)
-printExecution (Just (Just (args, _), ss)) = text "Terminated" $$ vcat (map showFix2SubleqState ss) $$ text "result: " <> text (show args) <> semi PP.<+> hsep (map (text . printf "%x") args)
+printExecution (Just (Just (args, end), ss)) = status $$ history $$ result $$ memoryDiff
+    where
+      status = text "Terminated"
+      history = vcat (map showFix2SubleqState ss)
+      result = text "result: " <> text (show args) <> semi PP.<+> hsep (map (text . printf "%x") args)
+      memoryDiff = text "modified: " <> text (show $ changedAddresses end $ head ss)
 
-return []
+changedAddresses :: Fix2SubleqState -> Fix2SubleqState -> Set SubleqWord
+changedAddresses (_, mem) (_,init) = M.foldrWithKey (\k v a-> case v of { False -> a ; True -> S.insert k a } ) S.empty  $ M.mergeWithKey f g g mem init -- M.mergeWithKey (/=) mem init
+    where
+      f :: SubleqWord -> SubleqWord -> SubleqWord -> Maybe Bool
+      f _ m1 m2 | m1 == m2 = Nothing
+                | otherwise = Just True
+      g ::  Map SubleqWord SubleqWord -> Map SubleqWord Bool
+      g = M.map (const True) . M.filter (/= 0)
 
 printModule = putStrLn $ render $ A.printModule subleqModule
 
@@ -241,6 +270,8 @@ printSubroutine s addr = f loc
       loc = obj >>= A.locate subleqMA addr
       f (Just (o, _)) = putStrLn $ render $ A.printObject o
       f _ = putStrLn "not found"
+
+return []
 
 main :: IO Bool
 main = $quickCheckAll
