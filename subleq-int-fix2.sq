@@ -14,10 +14,9 @@ Z Lo;
 Z Z End;
 
 @sltu Rd,Rs,Rt
-Ca Rs; Ca Rt;
+Min Rs; Min Rt;
 $(@@sltSub Rd,Rs,Rt,T0,Finish);
-Finish:Ca Rs; Ca Rt; Z Z End;
-Ca:32768;
+Finish:Min Rs; Min Rt; Z Z End;
 
 @multD Hi, Lo, Rs, Rt // destructive
 Inc T4; $(@@jnzp Rs, Lsn, Clear, Lsp);
