@@ -36,7 +36,8 @@ maintainer:          mrty.ityt.pt@gmail.com
 
 category:            Language
 
-build-type:          Simple
+-- build-type:          Simple
+build-type:          Custom
 
 -- Extra files to be distributed with the package, such as examples or a 
 -- README.
