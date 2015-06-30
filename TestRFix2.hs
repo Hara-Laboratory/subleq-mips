@@ -31,6 +31,7 @@ import Data.Int
 import Data.Bits
 import Data.Function
 import Text.Printf
+import System.Environment
 
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Random as R
@@ -347,8 +348,9 @@ showModule = A.renderLoadPackResult $ A.loadModulePacked subleqMA subleqMATextSe
 main :: IO ()
 main = do
     ok <- $quickCheckAll
+    args <- getArgs
     if ok
-      then do
+      then if args /= ["measure"] then return () else do
         let n = 10000
         putStrLn "Measure multu"
         outputCsv "measure-subleqr-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
