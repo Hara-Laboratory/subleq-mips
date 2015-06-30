@@ -7,3 +7,4 @@ cabal.config
 *.sqo
 measure-*
 *.mem
+/*.sq
