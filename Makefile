@@ -11,6 +11,6 @@ sq: $(addsuffix .sq, $(TARGETS))
 %.sqo: %.sq
 	$(SUBLEQ) $(SUBLEQFLAGS) -f elf2mem -o $@ $<
 
-%.sq: %.sq.m4
+%.sq: %.sq.m4 subleq-lib.sq.m4
 	m4 $< > $@
 
