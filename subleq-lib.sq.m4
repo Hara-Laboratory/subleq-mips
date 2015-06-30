@@ -3,6 +3,8 @@ changequote(<,>)
 // I use 4%b1101 instead of 4'1101.
 changequote`'
 
+define(`PureSubleq',ifelse(ARCH,`subleq',`$1',`$1O'))
+
 @@sltSub Rd,Rs,Rt, T0, AEnd
 Rt T0; Rd;
 Z Rs Lsnz;
@@ -122,7 +124,7 @@ Loop:$(@@jnzp Rs, LBody, LFinish, LBody);
 LFinish:T0; Rs; T1 Rs; T1 T1 End;
 LBody:Dec Rs; $(@@addc Hi, Lo, Rt, T0, Loop);
 
-@@multuSubO Hi, Lo, Rs, Rt, T0, T1, T2, T3, End
+PureSubleq(`@@multuSub') Hi, Lo, Rs, Rt, T0, T1, T2, T3, End
 Lo; Rs T1;
 CW T0;
 Loop:Inc T0 LBody;
@@ -132,6 +134,7 @@ LBody2:$(@@sl1c T3, Rs, LBody3);
 LBody3:Z T3 Loop;
 $(@@addc Hi, Lo, Rt, T2, Loop);
 
+ifelse(ARCH,`subleqr',`
 @@multuSub Hi, Lo, Rs, Rt, TRth, T2, Ts, Tt, End
 Hi; Lo; Rs Ts; Rt Tt;
 Loop:$(@@jezo Rs, LBodyE, LFinish, LBodyO);
@@ -140,6 +143,7 @@ LBodyO:$(@@addc Hi, Lo, Rt, T2, LBodyO1);
 LBodyO1:TRth Z; Z Hi; Z;
 LBodyE:$(@@sl1d TRth, Rt, LBodyE1);
 LBodyE1:$(@@srl1m Rs, Loop);
+')
 
 @@neg Ad, A, T, Aend
 A Z; Z T; Ad; T Ad; T; Z Z Aend;
@@ -158,4 +162,3 @@ LBody2:T2; Rs T2; Rt Rs; $(@@jnzp Rs, LResume, LNext, LNext);
 LNext:End; // we must fix
 LResume:Rs; T2 Rs; T2 T2;
 $(@@addc Hi, Lo, Rt, T2, Loop);
-
