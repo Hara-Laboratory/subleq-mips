@@ -92,10 +92,19 @@ Ln:Dec Al; Inc Ad; Inc Ah; $(@@sl1m Al, Aend);
 
 @@sl1c Ad, Al, Aend // {Ad, Al} <- {(w-1)%b0, Al, 1%d0}
 L1:Ad;
+$(@@sl1ca Ad, Al, Aend);
+
+@@sl1ca Ad, Al, Aend // {A, Al} <- {(w-1)%b0, Al, 1%d0} ; Ad <- Ad + A
 Z Al Lzn;
 Lp:$(@@sl1m Al, Aend);
 Lzn:Inc Al Ln; Dec Al Lp;
 Ln:Dec Al; Inc Ad; $(@@sl1m Al, Aend);
+
+@@sl1cj Al, Az, Ao // {Ad, Al} <- {(w-1)%b0, Al, 1%d0} ; if Ad == 1 then jump Ao else jump Az
+Z Al Lzn;
+Lp:$(@@sl1m Al, Az);
+Lzn:Inc Al Ln; Dec Al Lp;
+Ln:Dec Al; $(@@sl1m Al, Ao);
 
 ifelse(ARCH,`subleqr',`
 @@srl1 Ad, As, Aend // {Ad, 1%_} <- {1%b0, As}
