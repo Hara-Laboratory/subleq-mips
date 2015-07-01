@@ -98,20 +98,10 @@ Z Z End;
 $(@@sllsub Rd, Rt, Sa, T0, T1, End);
 
 @srl Rd, Rt, Sa
-Rt T1; Rd;
-Sa T0; CW Sa;
-Loop:Inc Sa LBody;
-LFinish:Sa; T0 Sa; T0; Rt; T1 Rt; T1 T1 End;
-LBody:$(@@sl1d Rd, Rt, Loop);
+$(@@srlSub  Rd, Rt, Sa, T0, T1, End);
 
 @sra Rd, Rt, Sa
-Rt T1; Rd;
-$(@@jnzp Rt, Ln, Lzp, Lzp);
-Ln:Dec Rd;
-Lzp:Sa T0; CW Sa;
-Loop:Inc Sa LBody;
-LFinish:Sa; T0 Sa; T0; Rt; T1 Rt; T1 T1 End;
-LBody:$(@@sl1d Rd, Rt, Loop);
+$(@@sraSub  Rd, Rt, Sa, T0, T1, End);
 
 @srl1dcTest Rd, Rh, Rl
 $(@@sl1dc Rd, Rh, Rl, End);

@@ -31,6 +31,22 @@ Loop:Inc S1 LBody;
 LFinish:S2; S1 S1 Aend;
 LBody:S2 Rd; S2; Rd S2; Z Z Loop;
 
+PureSubleq(`@@srlSub') Rd, Rt, Sa, S0, S1, Aend
+Rt S1; Rd;
+Sa S0; CW Sa;
+Loop:Inc Sa LBody;
+LFinish:Sa; S0 Sa; S0; Rt; S1 Rt; S1 S1 Aend;
+LBody:$(@@sl1d Rd, Rt, Loop);
+
+PureSubleq(`@@sraSub') Rd, Rt, Sa, S0, S1, Aend
+Rt S1; Rd;
+$(@@jnzp Rt, Ln, Lzp, Lzp);
+Ln:Dec Rd;
+Lzp:Sa S0; CW Sa;
+Loop:Inc Sa LBody;
+LFinish:Sa; S0 Sa; S0; Rt; S1 Rt; S1 S1 Aend;
+LBody:$(@@sl1d Rd, Rt, Loop);
+
 ifelse(ARCH,`subleqr',`
 @@srlsub Rd, Rt, Sa, S1, S2, Aend
 Rt S2 (- L2); L2:Rd; L3:S2 Rd (- L4);
