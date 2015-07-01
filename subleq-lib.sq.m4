@@ -205,6 +205,7 @@ Ls1:$(@@sl1cj Rt, L$4, L$5);
 DestructiveBitwise(`andDSub',`0',`0',`0',`1')
 DestructiveBitwise(`orDSub',`0',`1',`1',`1')
 DestructiveBitwise(`xorDSub',`0',`1',`1',`0')
+DestructiveBitwise(`norDSub',`1',`0',`0',`0')
 
 @@divuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, End
 Hi; Rs T1;
