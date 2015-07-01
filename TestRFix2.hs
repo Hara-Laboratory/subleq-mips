@@ -29,6 +29,7 @@ import Test.QuickCheck
 import Data.Word
 import Data.Int
 import Data.Bits
+import qualified Data.Bits as Bit
 import Data.Function
 import Text.Printf
 import System.Environment
@@ -254,6 +255,26 @@ prop_Sltu :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
 prop_Sltu rd rs rt  = [rd', rs', rt'] == [if rs < rt then 1 else 0, rs, rt]
     where
       [rd', rs', rt'] = map fromIntegral $ executeSubroutine "sltu" $ map fromIntegral [rd, rs, rt]
+
+prop_And :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_And rd rs rt  = [rd', rs', rt'] == [rs Bit..&. rt, rs, rt]
+    where
+      [rd', rs', rt'] = map fromIntegral $ executeSubroutine "and" $ map fromIntegral [rd, rs, rt]
+
+prop_Or :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Or rd rs rt  = [rd', rs', rt'] == [rs Bit..|. rt, rs, rt]
+    where
+      [rd', rs', rt'] = map fromIntegral $ executeSubroutine "and" $ map fromIntegral [rd, rs, rt]
+
+prop_Xor :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Xor rd rs rt  = [rd', rs', rt'] == [rs `xor` rt, rs, rt]
+    where
+      [rd', rs', rt'] = map fromIntegral $ executeSubroutine "and" $ map fromIntegral [rd, rs, rt]
+
+prop_Not :: SubleqUWord -> SubleqUWord -> Bool
+prop_Not rd rs  = [rd', rs'] == [complement rs, rs]
+    where
+      [rd', rs'] = map fromIntegral $ executeSubroutine "not" $ map fromIntegral [rd, rs]
 
 multD hi lo rs rt  = ([(iHi `shift` wordLength) + iLo, iHi `shift` wordLength, iHi, iLo, iRs, iRt], (iHi `shift` wordLength) + iLo == iRs * iRt)
     where
