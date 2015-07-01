@@ -114,7 +114,7 @@ As Z (- L2); L2:Ad; Z Ad (- L4); L4:Z Ad (- L5); L5:Z Z Aend;
 A Z (- L2); L2:Z A (- L3); L3:Z Z Aend;
 ')
 
-@@sl1 Ad, As, Aend
+@@sl1 Ad, As, Aend // {1%d_, Ad} <- {As, 1%d0}
 As Z; Ad; Z Ad; Z Ad; Z Z Aend;
 
 @@sl1m A, Aend // {1%d_, A} <- {A, 1%d0}
