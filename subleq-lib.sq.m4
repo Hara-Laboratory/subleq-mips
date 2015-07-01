@@ -49,13 +49,25 @@ LBody:$(@@sl1d Rd, Rt, Loop);
 
 ifelse(ARCH,`subleqr',`
 @@srlsub Rd, Rt, Sa, S1, S2, Aend
+Rd; Sa Rd; Threshold Rd LSmall;
+$(@@srlSubO Rd, Rt, Sa, S1, S2, Aend);
+LSmall:$(@@srlsub1 Rd, Rt, Sa, S1, S2, Aend);
+Threshold:(- 17);
+
+@@srasub Rd, Rt, Sa, S1, S2, S3, Aend
+Rd; Sa Rd; Threshold Rd LSmall;
+$(@@sraSubO Rd, Rt, Sa, S1, S2, Aend);
+LSmall:$(@@srasub1 Rd, Rt, Sa, S1, S2, S3, Aend);
+Threshold:(- 17);
+
+@@srlsub1 Rd, Rt, Sa, S1, S2, Aend
 Rt S2 (- L2); L2:Rd; L3:S2 Rd (- L4);
 L4:Sa S1; // S1 = -Sa
 Loop:Inc S1 LBody;
 LFinish:S2; S1 S1 Aend;
 LBody:S2 Rd (- LB2); LB2:S2; Rd S2 (- LB4); LB4:Z Z Loop;
 
-@@srasub Rd, Rt, Sa, S1, S2, S3, Aend
+@@srasub1 Rd, Rt, Sa, S1, S2, S3, Aend
 Rt S2 (- L2); L2:Rd; L3:S2 Rd (- L4);
 L4:Sa S1; // S1 = -Sa
 $(@@jnzp Rt, Ln, Loop, Loop);
