@@ -130,3 +130,21 @@ Le:R; Inc R End; Z Z End;
 Lz:R; Z Z End;
 Lo:R; Dec R End; Z Z End;
 
+@and Rd, Rs, Rt
+Rs T2; Rt T3;
+$(@@andDSub  Rd, Rs, Rt, T0, T1, LFinish);
+LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
+
+@or Rd, Rs, Rt
+Rs T2; Rt T3;
+$(@@orDSub  Rd, Rs, Rt, T0, T1, LFinish);
+LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
+
+@xor Rd, Rs, Rt
+Rs T2; Rt T3;
+$(@@xorDSub  Rd, Rs, Rt, T0, T1, LFinish);
+LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
+
+@not Rd, Rs, Rt
+$(@@inv  Rd, Rs, T0, End);
+
