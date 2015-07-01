@@ -264,12 +264,12 @@ prop_And rd rs rt  = [rd', rs', rt'] == [rs Bit..&. rt, rs, rt]
 prop_Or :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
 prop_Or rd rs rt  = [rd', rs', rt'] == [rs Bit..|. rt, rs, rt]
     where
-      [rd', rs', rt'] = map fromIntegral $ executeSubroutine "and" $ map fromIntegral [rd, rs, rt]
+      [rd', rs', rt'] = map fromIntegral $ executeSubroutine "or" $ map fromIntegral [rd, rs, rt]
 
 prop_Xor :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
 prop_Xor rd rs rt  = [rd', rs', rt'] == [rs `xor` rt, rs, rt]
     where
-      [rd', rs', rt'] = map fromIntegral $ executeSubroutine "and" $ map fromIntegral [rd, rs, rt]
+      [rd', rs', rt'] = map fromIntegral $ executeSubroutine "xor" $ map fromIntegral [rd, rs, rt]
 
 prop_Not :: SubleqUWord -> SubleqUWord -> Bool
 prop_Not rd rs  = [rd', rs'] == [complement rs, rs]
