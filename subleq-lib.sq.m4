@@ -189,6 +189,39 @@ A Z; Z T; Ad; T Ad; T; Z Z Aend;
 $(@@neg Ad, A, T, L);
 L:Dec Ad Aend;
 
+@@andDSub Rd, Rs, Rt, S0, S1, Aend
+Rd; Dec Rd;
+CW S0;
+L1:Inc Rd;
+L0:Inc S0 LBody;
+LFinish:S0; S1 S1 Aend;
+LBody:$(@@sl1m Rd, LBody2);
+LBody2:$(@@sl1cj Rs, Ls0, Ls1);
+Ls0:$(@@sl1cj Rt, L0, L0);
+Ls1:$(@@sl1cj Rt, L0, L1);
+
+@@orDSub Rd, Rs, Rt, S0, S1, Aend
+Rd; Dec Rd;
+CW S0;
+L1:Inc Rd;
+L0:Inc S0 LBody;
+LFinish:S0; S1 S1 Aend;
+LBody:$(@@sl1m Rd, LBody2);
+LBody2:$(@@sl1cj Rs, Ls0, Ls1);
+Ls0:$(@@sl1cj Rt, L0, L1);
+Ls1:$(@@sl1cj Rt, L1, L1);
+
+@@xorDSub Rd, Rs, Rt, S0, S1, Aend
+Rd; Dec Rd;
+CW S0;
+L1:Inc Rd;
+L0:Inc S0 LBody;
+LFinish:S0; S1 S1 Aend;
+LBody:$(@@sl1m Rd, LBody2);
+LBody2:$(@@sl1cj Rs, Ls0, Ls1);
+Ls0:$(@@sl1cj Rt, L0, L1);
+Ls1:$(@@sl1cj Rt, L1, L0);
+
 @@divuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, End
 Hi; Rs T1;
 CW T0;
