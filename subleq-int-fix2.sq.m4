@@ -124,6 +124,13 @@ LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
 @not Rd, Rs, Rt
 $(@@inv  Rd, Rs, T0, End);
 
+@lwTest Rt, Rs
+$(@@lwSub Rt, Zero, One, End);
+Zero:0 One:4;
+
+@swTest Rt, Rs
+$(@@swSub Rt, Zero, One, End);
+Zero:0 One:4;
 
 @multu Hi, Lo, Rs, Rt
 $(@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, End);

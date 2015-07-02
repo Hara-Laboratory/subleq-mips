@@ -202,10 +202,27 @@ Ls0:$(@@sl1cj Rt, L$2, L$3);
 Ls1:$(@@sl1cj Rt, L$4, L$5);
 ')
 
+
 DestructiveBitwise(`andDSub',`0',`0',`0',`1')
 DestructiveBitwise(`orDSub',`0',`1',`1',`1')
 DestructiveBitwise(`xorDSub',`0',`1',`1',`0')
 DestructiveBitwise(`norDSub',`1',`0',`0',`0')
+
+@@lwSub1 Rt, MAddr, Aend // Rt <- mem[-MAddr] ; MAddr <- 0
+MAddr X; MAddr;
+X:0 MAddr; X; Rt; MAddr Rt; MAddr MAddr Aend;
+
+@@swSub1 Rt, MAddr, Aend // mem[-MAddr] <- Rt ; MAddr <- 0
+Z X1; Z X2; Z X3; Z; Rt Z;
+X1:0 X2:0; Z X3:0; X1; X2; X3; Z Z Aend;
+
+@@lwSub Rt, Base, Offset, Aend
+Base T0; Offset T0; 
+$(@@lwSub1 Rt, T0, Aend);
+
+@@swSub Rt, Base, Offset, Aend
+Base T0; Offset T0; 
+$(@@swSub1 Rt, T0, Aend);
 
 @@divuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, End
 Hi; Rs T1;

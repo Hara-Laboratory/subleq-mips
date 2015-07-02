@@ -261,6 +261,16 @@ prop_Not rd rs  = [rd', rs'] == [complement rs, rs]
     where
       [rd', rs'] = map fromIntegral $ executeSubroutine "not" $ map fromIntegral [rd, rs]
 
+prop_Lw :: SubleqUWord -> SubleqUWord -> Bool
+prop_Lw rt rs  = [rt', rs'] == [rs, rs]
+    where
+      [rt', rs'] = map fromIntegral $ executeSubroutine "lwTest" $ map fromIntegral [rt, rs]
+
+prop_Sw :: SubleqUWord -> SubleqUWord -> Bool
+prop_Sw rt rs  = [rt', rs'] == [rt, rt]
+    where
+      [rt', rs'] = map fromIntegral $ executeSubroutine "swTest" $ map fromIntegral [rt, rs]
+
 multD hi lo rs rt  = ([(iHi `shift` wordLength) + iLo, (iHi `shift` wordLength), iHi, iLo, iRs, iRt], (iHi `shift` wordLength) + iLo == iRs * iRt)
     where
       iHi, iLo, iRs, iRt :: Integer
