@@ -174,6 +174,7 @@ $(@@addc Hi, Lo, Rt, T2, Loop);
 ifelse(ARCH,`subleqr',`
 @@multuSub Hi, Lo, Rs, Rt, TRth, T2, Ts, Tt, End
 Hi; Lo; Rs Ts; Rt Tt;
+$(@@exch Rs, Rt, Ts, Tt, Loop); // for exchange
 Loop:$(@@jezo Rs, LBodyE, LFinish, LBodyO);
 LFinish:Ts Rs; Ts; Rt; Tt Rt; TRth; Tt Tt End;
 LBodyO:$(@@addc Hi, Lo, Rt, T2, LBodyO1);
@@ -181,6 +182,20 @@ LBodyO1:TRth Z; Z Hi; Z;
 LBodyE:$(@@sl1d TRth, Rt, LBodyE1);
 LBodyE1:$(@@srl1m Rs, Loop);
 ')
+
+
+@@exch As, At, Ts, Tt, Aend // [cond: End must be the next of this subroutine; use: Ts, Tt, invariant: Ts = -As, Tt = -At] As <- min(-Ts, -Tt), At <- max(-Ts, -Tt) ;
+Z As Lzns;
+Lps:Z At Aend; // go to Aend if As > 0 and At <= 0
+Lnnpp:As At Lnonswap; $(@@swapNeg As, At, Ts, Tt, Aend);
+Lzns:Z As Lnnpp;
+Lznspt:$(@@swapNeg As, At, Ts, Tt, Aend);
+Lnonswap:Ts At;
+
+@@swapNeg Ax, Ay, Tx, Ty, Aend // [invariant: Tx = -Ax and Ty = -Ay] Ax <- Ay ; Ay <- Ax
+Ax; Ay; Tx Ay; Ty Ax;
+Z Z Aend;
+
 
 @@neg Ad, A, T, Aend
 A Z; Z T; Ad; T Ad; T; Z Z Aend;
