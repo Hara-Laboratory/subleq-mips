@@ -4,6 +4,7 @@ changequote(<,>)
 changequote`'
 
 define(`PureSubleq',ifelse(ARCH,`subleq',`$1',`$1O'))
+define(`RDec',`Min')
 
 @@sltSub Rd,Rs,Rt, T0, AEnd
 Rt T0; Rd;
@@ -24,7 +25,7 @@ Ad; // clear Ad
 Z Ad;
 Z Z AEnd;
 
-@@sllsub Rd, Rt, Sa, S1, S2, Aend
+PureSubleq(`@@sllsub') Rd, Rt, Sa, S1, S2, Aend
 Rt S2; Rd; S2 Rd;
 Sa S1; // S1 = -Sa
 Loop:Inc S1 LBody;
@@ -48,6 +49,12 @@ LFinish:Sa; S0 Sa; S0; Rt; S1 Rt; S1 S1 Aend;
 LBody:$(@@sl1d Rd, Rt, Loop);
 
 ifelse(ARCH,`subleqr',`
+@@sllsub Rd, Rt, Sa, S1, S2, Aend
+Rd; Sa Rd; Threshold Rd LSmall;
+$(@@sllsubO Rd, Rt, Sa, S1, S2, Aend);
+LSmall:$(@@sllsubBig Rd, Rt, Sa, S1, S2, Aend);
+Threshold:(- 17);
+
 @@srlsub Rd, Rt, Sa, S1, S2, Aend
 Rd; Sa Rd; Threshold Rd LSmall;
 $(@@srlSubO Rd, Rt, Sa, S1, S2, Aend);
@@ -59,6 +66,13 @@ Rd; Sa Rd; Threshold Rd LSmall;
 $(@@sraSubO Rd, Rt, Sa, S1, S2, Aend);
 LSmall:$(@@srasub1 Rd, Rt, Sa, S1, S2, S3, Aend);
 Threshold:(- 17);
+
+@@sllsubBig Rd, Rt, Sa, S0, S1, Aend
+Rt S1; Rd;
+Sa S0; CW Sa;
+Loop:Inc Sa LBody;
+LFinish:Sa; S0 Sa; S0; Rt; S1 Rt; S1 S1 Aend;
+LBody:$(@@srl1d Rd, Rt, Loop);
 
 @@srlsub1 Rd, Rt, Sa, S1, S2, Aend
 Rt S2 (- L2); L2:Rd; L3:S2 Rd (- L4);
@@ -82,6 +96,14 @@ $(@@sl1m Ah, L1); L1:Z Al Lzn;
 Lp:$(@@sl1m Al, Aend);
 Lzn:Inc Al Ln; Dec Al Lp;
 Ln:Dec Al; Inc Ah; $(@@sl1m Al, Aend);
+
+ifelse(ARCH,`subleqr',`
+@@srl1d Ah, Al, Aend // {Ah, Al, 1%d_} <- {1%b0, Ah, Al}
+$(@@srl1m Al, L1); L1:Z Ah (- Lzo);
+Le:$(@@srl1m Ah, Aend);
+Lzo:Inc Ah (- Lo); RDec Ah (- Le);
+Lo:RDec Ah (- Lo2); Lo2:Inc Al (- Lo3); Lo3:$(@@srl1m Ah, Aend);
+')
 
 @@sl1dc Ad, Ah, Al, Aend // {Ad, Al} <- {(w-1)%b0, Al, 1%b0}; {1%_, Ah} <- {Ah, Ad[0]}
 $(@@sl1m Ah, L1); L1:Ad;
