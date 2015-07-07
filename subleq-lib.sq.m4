@@ -205,6 +205,32 @@ LBodyE:$(@@sl1d TRth, Rt, LBodyE1);
 LBodyE1:$(@@srl1m Rs, Loop);
 ')
 
+@@multSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, T4, T5, T6, Aend
+Rs T5; Rt T6;
+Inc T4; $(@@jnzp Rs, Lsn, Clear, Lsp);
+Lsn:Inc T4; $(@@neg Rs, Rs, T0, Lsp);
+Lsp:$(@@jnzp Rt, Ltn, Clear, Ltp);
+Ltn:Inc T4; $(@@neg Rt, Rt, T0, Lsp);
+Ltp:$(@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, Lneg);
+Lneg:Dec T4 Finish;
+$(@@inv Hi, Hi, T0, LinvL);
+LinvL:$(@@inv Lo, Lo, T0, Linc);
+Linc:$(@@addc Hi, Lo, Dec, T0, Lneg);
+Clear:Hi; Lo Lo;
+Finish:Rs; T5 Rs; T5; Rt; T6 Rt; T6; T4 T4 Aend;
+
+@@multDSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, T4, Aend
+Inc T4; $(@@jnzp Rs, Lsn, Clear, Lsp);
+Lsn:Inc T4; $(@@neg Rs, Rs, T0, Lsp);
+Lsp:$(@@jnzp Rt, Ltn, Clear, Ltp);
+Ltn:Inc T4; $(@@neg Rt, Rt, T0, Lsp);
+Ltp:$(@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, Lneg);
+Lneg:Dec T4 Finish;
+$(@@inv Hi, Hi, T0, LinvL);
+LinvL:$(@@inv Lo, Lo, T0, Linc);
+Linc:$(@@addc Hi, Lo, Dec, T0, Lneg);
+Clear:Hi; Lo Lo;
+Finish:T4 T4 End;
 
 @@exch As, At, Ts, Tt, Aend // [cond: End must be the next of this subroutine; use: Ts, Tt, invariant: Ts = -As, Tt = -At] As <- min(-Ts, -Tt), At <- max(-Ts, -Tt) ;
 Z As Lzns;
