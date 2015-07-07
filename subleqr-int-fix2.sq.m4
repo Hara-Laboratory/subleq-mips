@@ -22,31 +22,10 @@ $(@@sltSub Rd,Rs,Rt,T0,Finish);
 Finish:Min Rs; Min Rt; Z Z End;
 
 @multD Hi, Lo, Rs, Rt // destructive
-Inc T4; $(@@jnzp Rs, Lsn, Clear, Lsp);
-Lsn:Inc T4; $(@@neg Rs, Rs, T0, Lsp);
-Lsp:$(@@jnzp Rt, Ltn, Clear, Ltp);
-Ltn:Inc T4; $(@@neg Rt, Rt, T0, Lsp);
-Ltp:$(@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, Lneg);
-Lneg:Dec T4 Finish;
-$(@@inv Hi, Hi, T0, LinvL);
-LinvL:$(@@inv Lo, Lo, T0, Linc);
-Linc:$(@@addc Hi, Lo, Dec, T0, Lneg);
-Clear:Hi; Lo Lo;
-Finish:T4 T4 End;
+$(@@multDSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, T4, End);
 
 @mult Hi, Lo, Rs, Rt
-Rs T5; Rt T6;
-Inc T4; $(@@jnzp Rs, Lsn, Clear, Lsp);
-Lsn:Inc T4; $(@@neg Rs, Rs, T0, Lsp);
-Lsp:$(@@jnzp Rt, Ltn, Clear, Ltp);
-Ltn:Inc T4; $(@@neg Rt, Rt, T0, Lsp);
-Ltp:$(@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, Lneg);
-Lneg:Dec T4 Finish;
-$(@@inv Hi, Hi, T0, LinvL);
-LinvL:$(@@inv Lo, Lo, T0, Linc);
-Linc:$(@@addc Hi, Lo, Dec, T0, Lneg);
-Clear:Hi; Lo Lo;
-Finish:Rs; T5 Rs; T5; Rt; T6 Rt; T6; T4 T4 End;
+$(@@multSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, T4, T5, T6, End);
 
 @slt Rd,Rs,Rt
 $(@@sltSub Rd,Rs,Rt,T0,End);
