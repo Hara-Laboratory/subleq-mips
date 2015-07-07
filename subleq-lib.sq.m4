@@ -72,7 +72,7 @@ Rt S1; Rd;
 Sa S0; CW Sa;
 Loop:Inc Sa LBody;
 LFinish:Sa; S0 Sa; S0; Rt; S1 Rt; S1 S1 Aend;
-LBody:$(@@srl1d Rd, Rt, Loop);
+LBody:$(@@srl1d Rt, Rd, Loop);
 
 @@srlsub1 Rd, Rt, Sa, S1, S2, Aend
 Rt S2 (- L2); L2:Rd; L3:S2 Rd (- L4);
