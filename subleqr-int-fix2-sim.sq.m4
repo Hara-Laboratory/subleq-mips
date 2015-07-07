@@ -1,20 +1,20 @@
-define(`ARCH',`subleq')
+define(`ARCH',`subleqr')
 include(`subleq-lib.sq.m4')
 
-@srl1dTest Rh, Rl
-$(@@sl1d Rh, Rl, End);
-
-@mflo Rd,Lo
-Rd;
-Lo Z;
-Z Rd;
-Z Z End;
-
-@mtlo Lo,Rs
-Lo;
-Rs Z;
-Z Lo;
-Z Z End;
+dnl @srl1dTest Rh, Rl
+dnl $(@@sl1d Rh, Rl, End);
+dnl 
+dnl @mflo Rd,Lo
+dnl Rd;
+dnl Lo Z;
+dnl Z Rd;
+dnl Z Z End;
+dnl 
+dnl @mtlo Lo,Rs
+dnl Lo;
+dnl Rs Z;
+dnl Z Lo;
+dnl Z Z End;
 
 @sltu Rd,Rs,Rt
 Min Rs; Min Rt;
@@ -37,11 +37,7 @@ Z Rd;
 Z Z End;
 
 @addu Rd,Rs,Rt
-Rs Z; // Z <- -Rs, it assumes Z = 0
-Rt Z; // Z <- Z - Rt = -(Rs + Rt)
-Rd; // clear Rd
-Z Rd;
-Z Z End;
+$(@@add Rd, Rs, Rt, End);
 
 @subu Rd,Rs,Rt
 Rs Z;
@@ -77,13 +73,41 @@ Z Z End;
 $(@@sllsub Rd, Rt, Sa, T0, T1, End);
 
 @srl Rd, Rt, Sa
-$(@@srlSub  Rd, Rt, Sa, T0, T1, End);
+$(@@srlsub Rd, Rt, Sa, T0, T1, End);
 
 @sra Rd, Rt, Sa
-$(@@sraSub  Rd, Rt, Sa, T0, T1, End);
+$(@@srasub Rd, Rt, Sa, T0, T1, T2, End);
+
+@srlS Rd, Rt, Sa // Original Subleq
+Rt T1; Rd;
+Sa T0; CW Sa;
+Loop:Inc Sa LBody;
+LFinish:Sa; T0 Sa; T0; Rt; T1 Rt; T1 T1 End;
+LBody:$(@@sl1d Rd, Rt, Loop);
+
+@sraO Rd, Rt, Sa
+Rt T1; Rd;
+$(@@jnzp Rt, Ln, Lzp, Lzp);
+Ln:Dec Rd;
+Lzp:Sa T0; CW Sa;
+Loop:Inc Sa LBody;
+LFinish:Sa; T0 Sa; T0; Rt; T1 Rt; T1 T1 End;
+LBody:$(@@sl1d Rd, Rt, Loop);
 
 @srl1dcTest Rd, Rh, Rl
 $(@@sl1dc Rd, Rh, Rl, End);
+
+@srl1Test Rd, Rs
+$(@@srl1 Rd, Rs, End);
+
+@multu Hi, Lo, Rs, Rt
+$(@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, End);
+
+@jezoTest R
+$(@@jezo R, Le, Lz, Lo);
+Le:R; Inc R End; Z Z End;
+Lz:R; Z Z End;
+Lo:R; Dec R End; Z Z End;
 
 @and Rd, Rs, Rt
 Rs T2; Rt T3;
@@ -102,15 +126,4 @@ LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
 
 @not Rd, Rs, Rt
 $(@@inv  Rd, Rs, T0, End);
-
-@lwTest Rt, Rs
-$(@@lwSub Rt, Zero, One, End);
-Zero:0 One:4;
-
-@swTest Rt, Rs
-$(@@swSub Rt, Zero, One, End);
-Zero:0 One:4;
-
-@multu Hi, Lo, Rs, Rt
-$(@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, End);
 
