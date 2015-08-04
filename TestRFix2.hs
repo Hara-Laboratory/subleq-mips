@@ -375,13 +375,12 @@ main :: IO ()
 main = do
     ok <- $quickCheckAll
     args <- getArgs
-    if ok
-      then if args /= ["measure"] then return () else do
-        let n = 10000
-        putStrLn "Measure multu"
-        outputCsv "measure-subleqr-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
-        putStrLn "Measure sra"
-        outputCsv "measure-subleqr-sra.csv" ["arg1","arg2","insns"] =<< measureSra n
-        putStrLn "Measure srl"
-        outputCsv "measure-subleqr-srl.csv" ["arg1","arg2","insns"] =<< measureSrl n
-      else putStrLn "Verification Failed!"
+    if not ok then putStrLn "Verification Failed!" else return ()
+    if args /= ["measure"] then return () else do
+      let n = 100000
+      putStrLn "Measure multu"
+      outputCsv "measure-subleqr-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
+      putStrLn "Measure sra"
+      outputCsv "measure-subleqr-sra.csv" ["arg1","arg2","insns"] =<< measureSra n
+      putStrLn "Measure srl"
+      outputCsv "measure-subleqr-srl.csv" ["arg1","arg2","insns"] =<< measureSrl n
