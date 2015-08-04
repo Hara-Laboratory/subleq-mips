@@ -22,10 +22,10 @@ $(@@sltSub Rd,Rs,Rt,T0,Finish);
 Finish:Min Rs; Min Rt; Z Z End;
 
 @multD Hi, Lo, Rs, Rt // destructive
-$(@@multDSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, T4, Aend);
+$(@@multDSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, T4, End);
 
 @mult Hi, Lo, Rs, Rt
-$(@@multSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, T4, T5, T6, Aend);
+$(@@multSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, T4, T5, T6, End);
 
 @slt Rd,Rs,Rt
 $(@@sltSub Rd,Rs,Rt,T0,End);
@@ -77,10 +77,10 @@ Z Z End;
 $(@@sllsub Rd, Rt, Sa, T0, T1, End);
 
 @srl Rd, Rt, Sa
-$(@@srlSub  Rd, Rt, Sa, T0, T1, End);
+$(@@srlsub  Rd, Rt, Sa, T0, T1, End);
 
 @sra Rd, Rt, Sa
-$(@@sraSub  Rd, Rt, Sa, T0, T1, End);
+$(@@srasub  Rd, Rt, Sa, T0, T1, End);
 
 @srl1dcTest Rd, Rh, Rl
 $(@@sl1dc Rd, Rh, Rl, End);

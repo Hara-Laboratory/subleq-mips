@@ -32,14 +32,14 @@ Loop:Inc S1 LBody;
 LFinish:S2; S1 S1 Aend;
 LBody:S2 Rd; S2; Rd S2; Z Z Loop;
 
-PureSubleq(`@@srlSub') Rd, Rt, Sa, S0, S1, Aend
+PureSubleq(`@@srlsub') Rd, Rt, Sa, S0, S1, Aend
 Rt S1; Rd;
 Sa S0; CW Sa;
 Loop:Inc Sa LBody;
 LFinish:Sa; S0 Sa; S0; Rt; S1 Rt; S1 S1 Aend;
 LBody:$(@@sl1d Rd, Rt, Loop);
 
-PureSubleq(`@@sraSub') Rd, Rt, Sa, S0, S1, Aend
+PureSubleq(`@@srasub') Rd, Rt, Sa, S0, S1, Aend
 Rt S1; Rd;
 $(@@jnzp Rt, Ln, Lzp, Lzp);
 Ln:Dec Rd;
@@ -50,22 +50,22 @@ LBody:$(@@sl1d Rd, Rt, Loop);
 
 ifelse(ARCH,`subleqr',`
 @@sllsub Rd, Rt, Sa, S1, S2, Aend
-Rd; Sa Rd; Threshold Rd LSmall;
+Rd; Sa Rd; Threshold Rd LBig;
 $(@@sllsubO Rd, Rt, Sa, S1, S2, Aend);
-LSmall:$(@@sllsubBig Rd, Rt, Sa, S1, S2, Aend);
-Threshold:(- 17);
+LBig:$(@@sllsubBig Rd, Rt, Sa, S1, S2, Aend);
+Threshold:(- 10);
 
 @@srlsub Rd, Rt, Sa, S1, S2, Aend
-Rd; Sa Rd; Threshold Rd LSmall;
-$(@@srlSubO Rd, Rt, Sa, S1, S2, Aend);
-LSmall:$(@@srlsub1 Rd, Rt, Sa, S1, S2, Aend);
-Threshold:(- 17);
+Rd; Sa Rd; Threshold Rd LBig;
+$(@@srlsub1 Rd, Rt, Sa, S1, S2, Aend);
+LBig:$(@@srlsubO Rd, Rt, Sa, S1, S2, Aend);
+Threshold:(- 21);
 
 @@srasub Rd, Rt, Sa, S1, S2, S3, Aend
-Rd; Sa Rd; Threshold Rd LSmall;
-$(@@sraSubO Rd, Rt, Sa, S1, S2, Aend);
-LSmall:$(@@srasub1 Rd, Rt, Sa, S1, S2, S3, Aend);
-Threshold:(- 17);
+Rd; Sa Rd; Threshold Rd LBig;
+$(@@srasub1 Rd, Rt, Sa, S1, S2, S3, Aend);
+LBig:$(@@srasubO Rd, Rt, Sa, S1, S2, Aend);
+Threshold:(- 20);
 
 @@sllsubBig Rd, Rt, Sa, S0, S1, Aend
 Rt S1; Rd;
@@ -147,6 +147,21 @@ Z A Lzn; Z Z Ap;
 Lzn:Inc A Ln; Dec A Az;
 Ln:Dec A An;
 
+@@jznz A, Az, Anz // goto Az if A = 0, Anz if A != 0
+Z A Lzn; Z Z Ap;
+Lzn:Inc A Ln; Dec A Az;
+Ln:Dec A An;
+
+dnl @@jeq Ax, Ay, T, Ae, Ane // goto Ae if A == 0, Az if A = 0, Ap if A > 0, ON GOING
+dnl Ay T; Ay Ax Lle;
+dnl Lgt:T Ax; T T Ane
+dnl Lle:
+dnl Lzn:Inc A Ln; Dec A Az;
+dnl Ln:Dec A An;
+dnl $(@@jnzp Lne, Le, Lne);
+dnl Le:T Ax; T T Ae;
+dnl Lne:T Ax; T T Ae;
+
 ifelse(ARCH,`subleqr',`
 @@jezo A, Ae, Az, Ao // goto Az if zero, Ae if A is even, Ao if A is odd.
 Z A (- Lzo); Z Z Ae;
@@ -156,6 +171,11 @@ Lo:Min A (- Ao);
 
 @@jeo A, Ae, Ao // goto Ae if A is even, Ao if A is odd.
 $(@@jezo A, Ae, Ae, Ao);
+
+@@jltz A, Altz, Agez // goto Ae if A is even, Ao if A is odd.
+A Z Lpz;
+Ln:Z Z Altz;
+Lpz:Z Z Agez;
 
 @@addc Ah, Al, A, T, Aend
 $(@@jnzp Al, Lln, Llp, Llp);
@@ -196,7 +216,7 @@ $(@@addc Hi, Lo, Rt, T2, Loop);
 ifelse(ARCH,`subleqr',`
 @@multuSub Hi, Lo, Rs, Rt, TRth, T2, Ts, Tt, End
 Hi; Lo; Rs Ts; Rt Tt;
-$(@@exch Rs, Rt, Ts, Tt, Loop); // for exchange
+// $(@@exch Rs, Rt, Ts, Tt, Loop); // for exchange
 Loop:$(@@jezo Rs, LBodyE, LFinish, LBodyO);
 LFinish:Ts Rs; Ts; Rt; Tt Rt; TRth; Tt Tt End;
 LBodyO:$(@@addc Hi, Lo, Rt, T2, LBodyO1);
@@ -246,14 +266,15 @@ Z Z Aend;
 
 
 @@neg Ad, A, T, Aend
-A Z; Z T; Ad; T Ad; T; Z Z Aend;
+A Z; Z T; Ad; T Ad; T;
+Z Z Aend;
 
 @@inv Ad, A, T, Aend
-$(@@neg Ad, A, T, L);
-L:Dec Ad Aend;
+A Z; Z T; Ad; T Ad; T;
+Dec Ad; Z Z Aend;
 
 define(`DestructiveBitwise',`
-@@$1 Rd, Rs, Rt, S0, S1, Aend
+PureSubleq(`@@$1') Rd, Rs, Rt, S0, S1, Aend
 Rd; Dec Rd;
 CW S0;
 L1:Inc Rd;
@@ -263,6 +284,10 @@ LBody:$(@@sl1m Rd, LBody2);
 LBody2:$(@@sl1cj Rs, Ls0, Ls1);
 Ls0:$(@@sl1cj Rt, L$2, L$3);
 Ls1:$(@@sl1cj Rt, L$4, L$5);
+ifelse(ARCH,`subleqr',`
+@@$1 Rd, Rs, Rt, S0, S1, Aend
+$(@@$1O Rd, Rs, Rt, S0, S1, Aend);
+')
 ')
 
 
