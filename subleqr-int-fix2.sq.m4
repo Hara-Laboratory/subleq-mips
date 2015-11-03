@@ -72,11 +72,20 @@ Z Z End;
 @sll Rd, Rt, Sa
 $(@@sllsub Rd, Rt, Sa, T0, T1, End);
 
-@srl Rd, Rt, Sa
-$(@@srlsub Rd, Rt, Sa, T0, T1, End);
+@slli3 Rd, Rt, Sa
+$(@@slli3sub Rd, Rt, Sa, T0, T1, End);
 
-@sra Rd, Rt, Sa
-$(@@srasub Rd, Rt, Sa, T0, T1, T2, End);
+@slli4 Rd, Rt, Sa
+$(@@slli4sub Rd, Rt, Sa, T0, T1, End);
+
+@srl Rd, Rt, Sa
+$(@@srlsub  Rd, Rt, Sa, T0, T1, End);
+
+@srli3 Rd, Rt, Sa
+$(@@srli3sub  Rd, Rt, Sa, T0, T1, End);
+
+@srli4 Rd, Rt, Sa
+$(@@srli4sub  Rd, Rt, Sa, T0, T1, End);
 
 @srlS Rd, Rt, Sa // Original Subleq
 Rt T1; Rd;
@@ -124,6 +133,81 @@ Rs T2; Rt T3;
 $(@@xorDSub  Rd, Rs, Rt, T0, T1, LFinish);
 LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
 
+@nor Rd, Rs, Rt
+Rs T2; Rt T3;
+$(@@norDSub  Rd, Rs, Rt, T0, T1, LFinish);
+LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
+
 @not Rd, Rs, Rt
 $(@@inv  Rd, Rs, T0, End);
 
+@lui Rd, Imm
+$(@@luiSub  Rd, Imm, T0, T1, End);
+
+@rrTest Rd, Sa
+$(@@rr  Rd, Sa, T0, T1, End);
+
+@rrsrmTest Rd, Rs, Sa
+$(@@rrsrm Rd, Rs, Sa, T0, T1, End);
+
+@rlTest Rd, Sa
+$(@@rl  Rd, Sa, T0, T1, End);
+
+@rlslmTest Rd, Rs, Sa
+$(@@rlslm Rd, Rs, Sa, T0, T1, End);
+
+@sviTest Rd, Rs, From, Size
+$(@@svi Rd, Rs, From, Size, T0, T1, T2, T3, End);
+
+@svliTest Rd, Rs, From, Size
+$(@@svli Rd, Rs, From, Size, T0, T1, T2, T3, End);
+
+@svriTest Rd, Rs, From, Size
+$(@@svri Rd, Rs, From, Size, T0, T1, T2, T3, End);
+
+@lvuiTest Rd, Rs, From, Size
+$(@@lvui Rd, Rs, From, Size, T0, T1, T2, T3, End);
+
+@lvuliTest Rd, Rs, From, Size
+$(@@lvuli Rd, Rs, From, Size, T0, T1, T2, T3, End);
+
+@lvuriTest Rd, Rs, From, Size
+$(@@lvuri Rd, Rs, From, Size, T0, T1, T2, T3, End);
+
+
+dnl @shiTest Rd, Rs, From
+dnl $(@@shi Rd, Rs, From, T0, T1, T2, T3, End);
+dnl 
+@shliTest Rd, Rs, From
+$(@@shli Rd, Rs, From, T0, T1, T2, T3, End);
+
+@shriTest Rd, Rs, From
+$(@@shri Rd, Rs, From, T0, T1, T2, T3, End);
+
+dnl @lhuiTest Rd, Rs, From
+dnl $(@@lhui Rd, Rs, From, T0, T1, T2, T3, End);
+dnl 
+@lhuliTest Rd, Rs, From
+$(@@lhuli Rd, Rs, From, T0, T1, T2, T3, End);
+
+@lhuriTest Rd, Rs, From
+$(@@lhuri Rd, Rs, From, T0, T1, T2, T3, End);
+
+
+dnl @sbiTest Rd, Rs, From
+dnl $(@@sbi Rd, Rs, From, T0, T1, T2, T3, End);
+dnl 
+@sbliTest Rd, Rs, From
+$(@@sbli Rd, Rs, From, T0, T1, T2, T3, End);
+
+@sbriTest Rd, Rs, From
+$(@@sbri Rd, Rs, From, T0, T1, T2, T3, End);
+
+dnl @lbuiTest Rd, Rs, From
+dnl $(@@lbui Rd, Rs, From, T0, T1, T2, T3, End);
+dnl 
+@lbuliTest Rd, Rs, From
+$(@@lbuli Rd, Rs, From, T0, T1, T2, T3, End);
+
+@lburiTest Rd, Rs, From
+$(@@lburi Rd, Rs, From, T0, T1, T2, T3, End);

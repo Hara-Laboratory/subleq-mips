@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module SubleqTestUtils where
 
 import Language.Subleq.Model.Prim
@@ -17,6 +18,7 @@ import qualified Data.Set as S
 import Data.FileEmbed
 -- import Control.Monad.State
 -- import Control.Lens
+import Control.Monad
 import Control.Arrow
 import Test.QuickCheck
 -- import Test.QuickCheck.Text
@@ -26,6 +28,10 @@ import Data.Int
 import Data.Bits
 import Data.Function
 import Text.Printf
+
+import qualified Data.Random as R
+import qualified Data.Random.Distribution.Exponential as R
+import qualified Data.Random.Distribution.Uniform as R
 
 subleqMA = undefined
 subleqMATextSection = undefined
@@ -77,3 +83,10 @@ measureInsns :: SubleqResult a w m -> Integer
 measureInsns (Just (Just _, ss)) = fromIntegral $ length ss - 1
 measureInsns (Just (Nothing, ss)) = fromIntegral $ length ss - 1
 
+
+uniformTo :: (R.Distribution R.Uniform a, Num a, Integral b) => b -> R.RVar a
+uniformTo n = R.uniform 0 (fromIntegral n)
+
+res :: (Integral a)=>a -> Int -> IO [Double]
+-- res :: (Distribution Uniform b, MonadRandom f, Functor f, Floating b) => Int -> f [b]
+res m n = map (2 **) <$> ( replicateM n . R.sample $ uniformTo m)

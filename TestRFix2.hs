@@ -92,6 +92,7 @@ subleqMA = A.MemoryArchitecture { A.instructionLength = 3
                                                               , ("CW",  0xf)
                                                               , ("Min",  0x10)
                                                               , ("Max",  0x11)
+                                                              , ("WordLength",  32)
                                                               ]
                                 , A.writeWord = Mem.write `on` fromIntegral
                                 }
@@ -183,17 +184,46 @@ prop_BneA rs off pc  = [rs', off'] == [rs, off] && pc' == pc + off
     where
       [rs', off', pc'] = executeSubroutine "bnea" [rs, off, pc]
 
+prop_Lui :: SubleqUWord -> SubleqUWord -> Bool
+prop_Lui rt imm  = imm' == imm && rt' == imm `shift` 16
+    where
+      [rt', imm'] = map fromIntegral $ executeSubroutine "lui" $ map fromIntegral [rt, imm]
+
 prop_Sll :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
 prop_Sll rd rt sa  = [rt', s'] == [rt, s] && rd' == rt `shift` fromIntegral s
     where
       s = sa `mod` wordLength
       [rd', rt', s'] = map fromIntegral $ executeSubroutine "sll" $ map fromIntegral [rd, rt, s]
 
+prop_Slli3 :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Slli3 rd rt sa  = [rt', s'] == [rt, s] && rd' == rt `shift` (fromIntegral s `shift` 3)
+    where
+      s = sa `mod` wordLength
+      [rd', rt', s'] = map fromIntegral $ executeSubroutine "slli3" $ map fromIntegral [rd, rt, s]
+
+prop_Slli4 :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Slli4 rd rt sa  = [rt', s'] == [rt, s] && rd' == rt `shift` (fromIntegral s `shift` 4)
+    where
+      s = sa `mod` wordLength
+      [rd', rt', s'] = map fromIntegral $ executeSubroutine "slli4" $ map fromIntegral [rd, rt, s]
+
 prop_Srl :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
 prop_Srl rd rt sa  = [rt', s'] == [rt, s] && rd' == rt `shift` (-(fromIntegral s))
     where
       s = sa `mod` wordLength
       [rd', rt', s'] = map fromIntegral $ executeSubroutine "srl" $ map fromIntegral [rd, rt, s]
+
+prop_Srli3 :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Srli3 rd rt sa  = [rt', s'] == [rt, s] && rd' == rt `shift` (- (fromIntegral s `shift` 3))
+    where
+      s = sa `mod` wordLength
+      [rd', rt', s'] = map fromIntegral $ executeSubroutine "srli3" $ map fromIntegral [rd, rt, s]
+
+prop_Srli4 :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Srli4 rd rt sa  = [rt', s'] == [rt, s] && rd' == rt `shift` (- (fromIntegral s `shift` 4))
+    where
+      s = sa `mod` wordLength
+      [rd', rt', s'] = map fromIntegral $ executeSubroutine "srli4" $ map fromIntegral [rd, rt, s]
 
 prop_Srl1Test :: SubleqUWord -> SubleqUWord -> Bool
 prop_Srl1Test rd rs  = rs' == rs && rd' == rs `shift` (-1)
@@ -281,6 +311,111 @@ prop_Not rd rs  = [rd', rs'] == [complement rs, rs]
     where
       [rd', rs'] = map fromIntegral $ executeSubroutine "not" $ map fromIntegral [rd, rs]
 
+prop_Rr :: SubleqUWord -> SubleqUWord -> Bool
+prop_Rr rt saB = [sa] == [sa] && rt' == (rt `shift` (-s)) Bit..|. (rt `shift` (wordLength - s))
+    where
+      s = fromIntegral sa
+      sa = saB `mod` wordLength
+      [rt', sa'] = map fromIntegral $ executeSubroutine "rrTest" $ map fromIntegral [rt, sa]
+
+prop_RrSrm :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_RrSrm rt rs saB = [sa] == [sa] && rt' == (rt `shift` (-s)) Bit..|. (rs `shift` (wordLength - s))
+    where
+      s = fromIntegral sa
+      sa = saB `mod` wordLength
+      [rt', rs', sa'] = map fromIntegral $ executeSubroutine "rrsrmTest" $ map fromIntegral [rt, rs, sa]
+
+prop_Rl :: SubleqUWord -> SubleqUWord -> Bool
+prop_Rl rt saB = [sa] == [sa] && rt' == (rt `shift` s) Bit..|. (rt `shift` (s - wordLength))
+    where
+      s = fromIntegral sa
+      sa = saB `mod` wordLength
+      [rt', sa'] = map fromIntegral $ executeSubroutine "rlTest" $ map fromIntegral [rt, sa]
+
+prop_RlSlm :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_RlSlm rt rs saB = [sa] == [sa] && rt' == (rt `shift` s) Bit..|. (rs `shift` (s - wordLength)) && rs' == (rs `shift` s)
+    where
+      s = fromIntegral sa
+      sa = saB `mod` wordLength
+      [rt', rs', sa'] = map fromIntegral $ executeSubroutine "rlslmTest" $ map fromIntegral [rt, rs, sa]
+
+mask f s = ((1 `shift` s) - 1) `shift` (f - s + 1)
+
+type LSvi = (SubleqUWord -> SubleqUWord -> Int -> Int -> SubleqUWord)
+-- svi rt rs f s = (rt Bit..&. complement (mask f s)) Bit..|. ((rs Bit..&. mask (wordLength - 1) s) `shift` (f - wordLength + 1))
+svi :: LSvi
+svi rt rs f s = (rt Bit..&. complement (mask (f+s-1) s)) Bit..|. ((rs Bit..&. mask (s - 1) s) `shift` f)
+
+testLSvi :: LSvi -> String -> SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+testLSvi lsvi subr rt rs frB saB = [fr', sa'] == [fr, sa] && rt' == lsvi rt rs f s
+    where
+      s = fromIntegral sa
+      f = fromIntegral fr
+      sa = saB `mod` (wordLength - fr + 1)
+      fr = frB `mod` wordLength
+      [rt', rs', fr', sa'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr, sa]
+
+testLSbi :: Int -> LSvi -> String -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+testLSbi n lsvi subr rt rs frB = fr' == fr && rt' == lsvi rt rs f s
+    where
+      s = fromIntegral sa
+      f = fromIntegral fr
+      sa = 1 `shift` n
+      fr = frB `mod` (wordLength `div` sa)
+      [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr]
+
+prop_Svi :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Svi = testLSvi svi "sviTest"
+
+prop_Svli :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Svli = testLSvi svi "svliTest"
+
+prop_Svri :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Svri = testLSvi svi "svriTest"
+
+lvui :: LSvi
+-- svi rt rs f s = (rt Bit..&. complement (mask f s)) Bit..|. ((rs Bit..&. mask (wordLength - 1) s) `shift` (f - wordLength + 1))
+lvui rt rs f s = (rs Bit..&. (mask (f+s-1) s)) `shift` (-f)
+
+prop_Lvui :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Lvui = testLSvi lvui "lvuiTest"
+
+prop_Lvuli :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Lvuli = testLSvi lvui "lvuliTest"
+
+prop_Lvuri :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Lvuri = testLSvi lvui "lvuriTest"
+
+prop_Sbi  = testLSbi 3 svi  "sbiTest"
+prop_Sbli = testLSbi 3 svi  "sbliTest"
+prop_Sbri = testLSbi 3 svi  "sbriTest"
+prop_Lbi  = testLSbi 3 lvui "lbuiTest"
+prop_Lbli = testLSbi 3 lvui "lbuliTest"
+prop_Lbri = testLSbi 3 lvui "lburiTest"
+
+prop_Shi  = testLSbi 4 svi  "shiTest"
+prop_Shli = testLSbi 4 svi  "shliTest"
+prop_Shri = testLSbi 4 svi  "shriTest"
+prop_Lhi  = testLSbi 4 lvui "lhuiTest"
+prop_Lhli = testLSbi 4 lvui "lhuliTest"
+prop_Lhri = testLSbi 4 lvui "lhuriTest"
+
+prop_Addrb :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Addrb rd rt rs = [rs'] == [rs] && rt' == rs Bit..&. 0x3 && rd' == rs `shift` (-2)
+    where
+      d = fromIntegral rd
+      t = fromIntegral rt
+      s = fromIntegral rs
+      [rd', rt', rs'] = map fromIntegral $ executeSubroutine "addrbTest" $ map fromIntegral [rd, rt, rs]
+
+prop_Addrh :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Addrh rd rt rs = [rs'] == [rs] && rt' == rs Bit..&. 0x1 && rd' == rs `shift` (-1)
+    where
+      d = fromIntegral rd
+      t = fromIntegral rt
+      s = fromIntegral rs
+      [rd', rt', rs'] = map fromIntegral $ executeSubroutine "addrhTest" $ map fromIntegral [rd, rt, rs]
+
 multD hi lo rs rt  = ([(iHi `shift` wordLength) + iLo, iHi `shift` wordLength, iHi, iLo, iRs, iRt], (iHi `shift` wordLength) + iLo == iRs * iRt)
     where
       iHi, iLo, iRs, iRt :: Integer
@@ -289,9 +424,13 @@ multD hi lo rs rt  = ([(iHi `shift` wordLength) + iLo, iHi `shift` wordLength, i
       [hi', lo', _, _] = executeSubroutine "multD" [hi, lo, rs, rt]
 
 showFix2SubleqState :: Fix2SubleqState -> Doc
-showFix2SubleqState (pc, mem) = integer (fromIntegral pc) <> colon PP.<+> hsep (map (\a-> integer $ memread a mem) [0..15]) PP.<+> colon PP.<+> hsep (map (\a-> integer $ memread a mem) [16..31]) PP.<+> colon PP.<+> integer (memread 0x120 mem) PP.<+> colon PP.<+>  hsep (map (\a-> integer $ memread a mem) [pc..(pc+2)])
+showFix2SubleqState (pc, mem) = integer (fromIntegral pc) <> colon PP.<+> hsep registers PP.<+> colon PP.<+> hsep registersEx PP.<+> colon PP.<+> integer (memread 0x120 mem) PP.<+> colon PP.<+>  hsep (map integer [a,b,c,src1, src2])
     where
       memread a mem = fromIntegral $ Mem.read (fromIntegral a) mem
+      registers = (map (\a-> integer $ memread a mem) [0..15])
+      registersEx = (map (\a-> integer $ memread a mem) [16..31])
+      [a, b, c] = (map (\a-> memread a mem) [pc..(pc+2)])
+      [src1, src2] = (map (\a-> memread a mem) [a, b])
 
 type SubleqResult a w m = Maybe (Maybe ([w], SubleqState a w m), [SubleqState a w m])
 type Fix2SubleqResult = SubleqResult SubleqWord SubleqWord Fix2SubleqMemory
@@ -331,12 +470,8 @@ debugSubroutine i args tries = printExecution $ executeSubroutineWithStates i ar
 
 return []
 
-randomSize :: (R.Distribution R.Uniform a, Num a) => R.RVar a
-randomSize = R.uniform 0 (fromIntegral wordLength)
-
-res :: Int -> IO [Double]
--- res :: (Distribution Uniform b, MonadRandom f, Functor f, Floating b) => Int -> f [b]
-res n = map (2 **) <$> ( replicateM n . R.sample $ randomSize)
+res = T.res wordLength
+randomSize = T.uniformTo wordLength
 
 measureMultu n = do
     xs <- map floor <$> res n
@@ -366,6 +501,22 @@ measureSrl n = do
                 let res = T.measureInsns $ executeSubroutineWithStates "srl" [0,x,y] maximumTry
                 return (x, y, res)
 
+measureSviType sub n = do
+    xs <- map floor <$> res n
+    zs <- replicateM n $ R.sample randomSize
+    ys <- forM zs (\ z -> R.sample (T.uniformTo (wordLength - z + 1)))
+    let xys = zip3 xs ys zs
+    return $ do (x, y, z) <- xys
+                let res = T.measureInsns $ executeSubroutineWithStates sub [0,x,y,z] maximumTry
+                return (x, y, z, res)
+
+measureSvi = measureSviType "sviTest"
+measureSvli = measureSviType "svliTest"
+measureSvri = measureSviType "svriTest"
+measureLvui = measureSviType "lvuiTest"
+measureLvuli = measureSviType "lvuriTest"
+measureLvuri = measureSviType "lvuriTest"
+
 outputCsv :: CSV.ToRecord a => FilePath -> [BL.ByteString] -> [a] -> IO ()
 outputCsv path header f = BL.writeFile path =<< (return $ BL.concat [BL.intercalate "," header, "\n", CSV.encode f])
 
@@ -375,12 +526,24 @@ main :: IO ()
 main = do
     ok <- $quickCheckAll
     args <- getArgs
+    putStrLn $ show args
     if not ok then putStrLn "Verification Failed!" else return ()
     if args /= ["measure"] then return () else do
       let n = 100000
-      putStrLn "Measure multu"
-      outputCsv "measure-subleqr-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
-      putStrLn "Measure sra"
-      outputCsv "measure-subleqr-sra.csv" ["arg1","arg2","insns"] =<< measureSra n
-      putStrLn "Measure srl"
-      outputCsv "measure-subleqr-srl.csv" ["arg1","arg2","insns"] =<< measureSrl n
+      -- putStrLn "Measure multu"
+      -- outputCsv "measure-subleqr-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
+      -- putStrLn "Measure sra"
+      -- outputCsv "measure-subleqr-sra.csv" ["arg1","arg2","insns"] =<< measureSra n
+      -- putStrLn "Measure srl"
+      -- outputCsv "measure-subleqr-srl.csv" ["arg1","arg2","insns"] =<< measureSrl n
+      measure "svi" measureSvi ["arg1","arg2","arg3","insns"] n
+      measure "svli" measureSvli ["arg1","arg2","arg3","insns"] n
+      measure "svri" measureSvri ["arg1","arg2","arg3","insns"] n
+      measure "lvui" measureLvui ["arg1","arg2","arg3","insns"] n
+      measure "lvuli" measureLvuli ["arg1","arg2","arg3","insns"] n
+      measure "lvuri" measureLvuri ["arg1","arg2","arg3","insns"] n
+  where
+    arch = "subleqr"
+    measure name func cols n = do
+      putStrLn $ "Measure " ++ name
+      outputCsv (mconcat ["measure-", arch, "-", name, ".csv"]) cols =<< func n

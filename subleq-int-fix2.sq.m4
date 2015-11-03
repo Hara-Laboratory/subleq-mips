@@ -76,11 +76,23 @@ Z Z End;
 @sll Rd, Rt, Sa
 $(@@sllsub Rd, Rt, Sa, T0, T1, End);
 
+@slli3 Rd, Rt, Sa
+$(@@slli3sub Rd, Rt, Sa, T0, T1, End);
+
+@slli4 Rd, Rt, Sa
+$(@@slli4sub Rd, Rt, Sa, T0, T1, End);
+
 @srl Rd, Rt, Sa
 $(@@srlsub  Rd, Rt, Sa, T0, T1, End);
 
+@srli3 Rd, Rt, Sa
+$(@@srli3sub  Rd, Rt, Sa, T0, T1, End);
+
+@srli4 Rd, Rt, Sa
+$(@@srli4sub  Rd, Rt, Sa, T0, T1, End);
+
 @sra Rd, Rt, Sa
-$(@@srasub  Rd, Rt, Sa, T0, T1, End);
+$(@@srasub  Rd, Rt, Sa, T0, T1, T2, End);
 
 @srl1dcTest Rd, Rh, Rl
 $(@@sl1dc Rd, Rh, Rl, End);
@@ -100,17 +112,47 @@ Rs T2; Rt T3;
 $(@@xorDSub  Rd, Rs, Rt, T0, T1, LFinish);
 LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
 
+@nor Rd, Rs, Rt
+Rs T2; Rt T3;
+$(@@norDSub  Rd, Rs, Rt, T0, T1, LFinish);
+LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
+
 @not Rd, Rs, Rt
 $(@@inv  Rd, Rs, T0, End);
 
 @lwTest Rt, Rs
 $(@@lwSub Rt, Zero, One, End);
-Zero:0 One:4;
+Zero:0 One:1;
 
 @swTest Rt, Rs
 $(@@swSub Rt, Zero, One, End);
-Zero:0 One:4;
+Zero:0 One:1;
 
 @multu Hi, Lo, Rs, Rt
 $(@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, End);
 
+@lui Rd, Imm
+$(@@luiSub  Rd, Imm, T0, T1, End);
+
+@rlTest Rd, Sa
+$(@@rl  Rd, Sa, T0, T1, End);
+
+@rlslmTest Rd, Rs, Sa
+$(@@rlslm Rd, Rs, Sa, T0, T1, End);
+
+@sviTest Rd, Rs, From, Size
+$(@@svi Rd, Rs, From, Size, T0, T1, T2, T3, End);
+
+@lvuiTest Rd, Rs, From, Size
+$(@@lvui Rd, Rs, From, Size, T0, T1, T2, T3, End);
+
+@lvu Rd, Addr, Pos
+$(@@lwSub T5, Addr, Z, L1);
+L1:$(@@lvui Rd, T5, Pos, T6, T0, T1, T2, T3, L2);
+L2:T5 T5 End;
+
+@sv Addr, Rs, Pos
+$(@@lwSub T5, Addr, Z, L1);
+L1:$(@@svi T5, Rs, Pos, T6, T0, T1, T2, T3, L2);
+L2:$(@@swSub T5, Addr, Z, L3);
+L3:T5 T5 End;

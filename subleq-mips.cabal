@@ -59,7 +59,7 @@ executable subleq-mips-int
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.7 && <4.8,
+  build-depends:       base >=4.7 && <4.9,
                        containers >=0.5.5.1 && <0.6,
                        mtl >=2.1.3.1 && <2.3,
                        lens >=4.5 && <5,
@@ -91,7 +91,7 @@ executable subleqr-mips-fix2
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.7 && <4.8,
+  build-depends:       base >=4.7 && <4.9,
                        containers >=0.5.5.1 && <0.6,
                        mtl >=2.1.3.1 && <2.3,
                        lens >=4.5 && <5,
@@ -126,7 +126,7 @@ executable subleq-mips-fix2
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.7 && <4.8,
+  build-depends:       base >=4.7 && <4.9,
                        containers >=0.5.5.1 && <0.6,
                        mtl >=2.1.3.1 && <2.3,
                        lens >=4.5 && <5,
@@ -161,7 +161,7 @@ executable subneg-mips-int
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.7 && <4.8,
+  build-depends:       base >=4.7 && <4.9,
                        containers >=0.5.5.1 && <0.6,
                        mtl >=2.1.3.1 && <2.3,
                        lens >=4.5 && <5,
@@ -183,7 +183,7 @@ executable subneg-mips-int
 executable subleq-mips
   main-is:             SubleqMips.hs
   -- other-modules:       
-  build-depends:       base >=4.7 && <4.8,
+  build-depends:       base >=4.7 && <4.9,
                        containers >=0.5.5.1 && <0.6,
                        mtl >=2.1.3.1 && <2.3,
                        lens >=4.5 && <5,
@@ -200,7 +200,7 @@ executable subleq-mips
 
 library
   exposed-modules:     SubleqTestUtils
-  build-depends:       base >=4.7 && <4.8,
+  build-depends:       base >=4.7 && <4.9,
                        containers >=0.5.5.1 && <0.6,
                        mtl >=2.1.3.1 && <2.3,
                        lens >=4.5 && <5,

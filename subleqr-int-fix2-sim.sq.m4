@@ -6,7 +6,7 @@ Min Rs; Min Rt;
 $(@@sltSub Rd,Rs,Rt,T0,Finish);
 Finish:Min Rs; Min Rt; Z Z End;
 
-@multD Hi, Lo, Rs, Rt // destructive
+@multD Rd, Rs, Rt // destructive
 $(@@multDSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, T4, End);
 
 dnl @mult Hi, Lo, Rs, Rt
@@ -24,7 +24,7 @@ $(@@srlsub Rd, Rt, Sa, T0, T1, End);
 @sra Rd, Rt, Sa
 $(@@srasub Rd, Rt, Sa, T0, T1, T2, End);
 
-@multu Hi, Lo, Rs, Rt
+@multu Rd, Rs, Rt
 $(@@multuSub Hi, Lo, Rs, Rt, T0, T1, T2, T3, End);
 
 @andD Rd, Rs, Rt
@@ -35,3 +35,9 @@ $(@@orDSub  Rd, Rs, Rt, T0, T1, End);
 
 @xorD Rd, Rs, Rt
 $(@@xorDSub  Rd, Rs, Rt, T0, T1, End);
+
+@norD Rd, Rs, Rt
+$(@@norDSub  Rd, Rs, Rt, T0, T1, End);
+
+@lui Rd, Imm
+$(@@luiSub  Rd, Imm, T0, T1, End);
