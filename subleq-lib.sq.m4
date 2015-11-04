@@ -129,7 +129,7 @@ Threshold:(- $4);
 ')
 
 ifelse(ARCH,`subleqr',`
-subroutine_per_size(`sllsub', `sllsubO', `sllsubBig', `10', `S1, S2')
+subroutine_per_size(`sllsub', `sllsubO', `sllsubBig', `22', `S1, S2')
 subroutine_per_size(`srlsub', `srlsub1', `srlsubO', `21', `S1, S2')
 subroutine_per_size(`srasub', `srasub1', `srasubO', `20', `S1, S2, S3')
 
@@ -780,19 +780,19 @@ LFinish:From; Sf From;
 Sf; Snf Snf Aend;
 ifelse(ARCH,`subleqr',`
 @@svi Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend // Rd <- {Rd[w-1:From+1], Rs[Size-1,0], Rd[From-Size,0]} ; modify Rd, Rs
-From Z; Size Z; Z Sf; Z Sf; CW Sf; Z;
+From Z; From Z; Size Z; Z Sf; CW Sf; Z;
 $(@@jnzp Sf, Lh, Ll, Ll);
 Lh:Sf; $(@@svri Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend);
 Ll:Sf; $(@@svli Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend);
 
 @@sbi Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {Rd[w-1:8*From+1], Rs[8-1,0], Rd[8*From-8,0]} ; modify Rd, Rs
-From Z; Size Z; Z Sf; Z Sf; CW Sf; Z;
+From Z; From Z; Size Z; Z Sf; CW Sf; Z;
 $(@@jnzp Sf, Lh, Ll, Ll);
 Lh:Sf; $(@@sbri Rd, Rs, From, S0, S1, Sf, Snf, Aend);
 Ll:Sf; $(@@sbli Rd, Rs, From, S0, S1, Sf, Snf, Aend);
 
 @@shi Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {Rd[w-1:8*From+1], Rs[8-1,0], Rd[8*From-8,0]} ; modify Rd, Rs
-From Z; Size Z; Z Sf; Z Sf; CW Sf; Z;
+From Z; From Z; Size Z; Z Sf; CW Sf; Z;
 $(@@jnzp Sf, Lh, Ll, Ll);
 Lh:Sf; $(@@shri Rd, Rs, From, S0, S1, Sf, Snf, Aend);
 Ll:Sf; $(@@shli Rd, Rs, From, S0, S1, Sf, Snf, Aend);
@@ -894,10 +894,10 @@ dnl Dec From;
 Sf; Snf Snf Aend;
 ifelse(ARCH,`subleqr',`
 @@lvui Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend // Rd <- {(w-S)%0, Rd[From+Size-1,From]} ; modify Rs
-From Z; Size Z; Z Sf; Z Sf; CW Sf; Z;
+From Z; From Z; Size Z; Z Sf; CW Sf; Z;
 $(@@jnzp Sf, Lh, Ll, Ll);
-Lh:Sf; $(@@lvuli Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend);
-Ll:Sf; $(@@lvuri Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend);
+Lh:Sf; $(@@lvuri Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend);
+Ll:Sf; $(@@lvuli Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend);
 
 dnl  F + S <= w
 dnl  F2 = w - F
