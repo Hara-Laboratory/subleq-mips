@@ -103,6 +103,9 @@ Loop:Inc Sa LBody;
 LFinish:Sa; T0 Sa; T0; Rt; T1 Rt; T1 T1 End;
 LBody:$(@@sl1d Rd, Rt, Loop);
 
+@sra Rd, Rt, Sa
+$(@@srasub Rd, Rt, Sa, T0, T1, T2, End);
+
 @srl1dcTest Rd, Rh, Rl
 $(@@sl1dc Rd, Rh, Rl, End);
 
