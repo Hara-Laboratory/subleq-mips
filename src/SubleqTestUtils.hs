@@ -82,6 +82,7 @@ type SubleqResult a w m = Maybe (Maybe ([w], SubleqState a w m), [SubleqState a 
 measureInsns :: SubleqResult a w m -> Integer
 measureInsns (Just (Just _, ss)) = fromIntegral $ length ss - 1
 measureInsns (Just (Nothing, ss)) = fromIntegral $ length ss - 1
+measureInsns Nothing = error "Invalid result. Maybe non-terminate."
 
 
 uniformTo :: (R.Distribution R.Uniform a, Num a, Integral b) => b -> R.RVar a

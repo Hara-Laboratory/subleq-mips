@@ -14,6 +14,7 @@ import Text.PrettyPrint hiding ((<+>))
 import qualified Text.PrettyPrint as PP
 import qualified Data.ByteString as B
 -- import Data.Maybe
+import Data.String.ToString
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Set (Set)
@@ -359,7 +360,7 @@ testLSbi :: Int -> LSvi -> String -> SubleqUWord -> SubleqUWord -> SubleqUWord -
 testLSbi n lsvi subr rt rs frB = fr' == fr && rt' == lsvi rt rs f s
     where
       s = fromIntegral sa
-      f = fromIntegral fr
+      f = fromIntegral (fr * sa)
       sa = 1 `shift` n
       fr = frB `mod` (wordLength `div` sa)
       [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr]
@@ -485,6 +486,18 @@ measureMultu n = do
                 let puy = logBase 2 $ fromIntegral uy :: Double
                 return (ux, uy, pux, puy, res)
 
+measureShiftType sub n = do
+    xs <- map floor <$> res n
+    ys <- replicateM n $ R.sample (T.uniformTo wordLength)
+    let xys = zip xs ys
+    return $ do (x, y) <- xys
+                let r' = executeSubroutineWithStates sub [0,x,y] maximumTry
+                case r' of
+                  Nothing -> error $ mconcat [toString sub, " is non terminate with ", show (x,y)]
+                  Just _ -> return ()
+                let res = T.measureInsns $ r'
+                return (x, y, res)
+
 measureSra n = do
     xs <- map floor <$> res n
     ys <- replicateM n $ R.sample randomSize
@@ -510,11 +523,23 @@ measureSviType sub n = do
                 let res = T.measureInsns $ executeSubroutineWithStates sub [0,x,y,z] maximumTry
                 return (x, y, z, res)
 
+measureSbiType b sub n = do
+    xs <- map floor <$> res n
+    ys <- replicateM n $ R.sample (T.uniformTo (wordLength `div` (1 `shift` b :: SubleqWord) - 1))
+    let xys = zip xs ys
+    return $ do (x, y) <- xys
+                let r' = executeSubroutineWithStates sub [0,x,y] maximumTry
+                case r' of
+                  Nothing -> error $ mconcat [toString sub, " is non terminate with ", show (x,y)]
+                  Just _ -> return ()
+                let res = T.measureInsns $ r'
+                return (x, y, res)
+
 measureSvi = measureSviType "sviTest"
 measureSvli = measureSviType "svliTest"
 measureSvri = measureSviType "svriTest"
 measureLvui = measureSviType "lvuiTest"
-measureLvuli = measureSviType "lvuriTest"
+measureLvuli = measureSviType "lvuliTest"
 measureLvuri = measureSviType "lvuriTest"
 
 outputCsv :: CSV.ToRecord a => FilePath -> [BL.ByteString] -> [a] -> IO ()
@@ -529,21 +554,30 @@ main = do
     putStrLn $ show args
     if not ok then putStrLn "Verification Failed!" else return ()
     if args /= ["measure"] then return () else do
-      let n = 100000
+      let n = 1000
       -- putStrLn "Measure multu"
       -- outputCsv "measure-subleqr-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
       -- putStrLn "Measure sra"
       -- outputCsv "measure-subleqr-sra.csv" ["arg1","arg2","insns"] =<< measureSra n
       -- putStrLn "Measure srl"
       -- outputCsv "measure-subleqr-srl.csv" ["arg1","arg2","insns"] =<< measureSrl n
+      measureType "" measureShiftType "sll" ["arg1","arg2","insns"] n
+      measureType "" measureShiftType "srl" ["arg1","arg2","insns"] n
+      measureType "" measureShiftType "sra" ["arg1","arg2","insns"] n
       measure "svi" measureSvi ["arg1","arg2","arg3","insns"] n
       measure "svli" measureSvli ["arg1","arg2","arg3","insns"] n
       measure "svri" measureSvri ["arg1","arg2","arg3","insns"] n
       measure "lvui" measureLvui ["arg1","arg2","arg3","insns"] n
       measure "lvuli" measureLvuli ["arg1","arg2","arg3","insns"] n
       measure "lvuri" measureLvuri ["arg1","arg2","arg3","insns"] n
+      measureTest (measureSbiType 3) "sbli"  ["arg1","arg2","insns"] n
+      measureTest (measureSbiType 3) "sbri"  ["arg1","arg2","insns"] n
+      measureTest (measureSbiType 3) "lbuli" ["arg1","arg2","insns"] n
+      measureTest (measureSbiType 3) "lburi" ["arg1","arg2","insns"] n
   where
     arch = "subleqr"
     measure name func cols n = do
-      putStrLn $ "Measure " ++ name
+      putStrLn $ "Measure " ++ toString name
       outputCsv (mconcat ["measure-", arch, "-", name, ".csv"]) cols =<< func n
+    measureTest ty name = measure name (ty $ name `mappend` "Test")
+    measureType suf ty name = measure name (ty $ name `mappend` suf)

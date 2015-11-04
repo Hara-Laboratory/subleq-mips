@@ -13,6 +13,7 @@ import Text.PrettyPrint hiding ((<+>))
 import qualified Text.PrettyPrint as PP
 import qualified Data.ByteString as B
 -- import Data.Maybe
+import Data.String.ToString
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Set (Set)
@@ -451,6 +452,15 @@ measureLvui n = do
                 let res = T.measureInsns $ executeSubroutineWithStates "lvuiTest" [0,x,y,z] maximumTry
                 return (x, y, z, res)
 
+measureShiftType sub n = do
+    xs <- map floor <$> res n
+    ys <- replicateM n $ R.sample (T.uniformTo wordLength)
+    let xys = zip xs ys
+    return $ do (x, y) <- xys
+                let res = T.measureInsns $ executeSubroutineWithStates sub [0,x,y] maximumTry
+                return (x, y, res)
+
+
 return []
 
 outputCsv :: CSV.ToRecord a => FilePath -> [BL.ByteString] -> [a] -> IO ()
@@ -473,7 +483,15 @@ main = do
       putStrLn "Measure srl"
       outputCsv "measure-subleq-srl.csv" ["arg1","arg2","insns"] =<< measureSrl n
       -}
-      putStrLn "Measure svi"
-      outputCsv "measure-subleq-svi.csv" ["arg1","arg2","arg3","insns"] =<< measureSvi n
-      putStrLn "Measure lvui"
-      outputCsv "measure-subleq-lvui.csv" ["arg1","arg2","arg3","insns"] =<< measureLvui n
+      measureType "" measureShiftType "sll" ["arg1","arg2","insns"] n
+      measureType "" measureShiftType "srl" ["arg1","arg2","insns"] n
+      measureType "" measureShiftType "sra" ["arg1","arg2","insns"] n
+      measure "svi" measureSvi ["arg1","arg2","arg3","insns"] n
+      measure "lvui" measureLvui ["arg1","arg2","arg3","insns"] n
+  where
+    arch = "subleq"
+    measure name func cols n = do
+      putStrLn $ "Measure " ++ toString name
+      outputCsv (mconcat ["measure-", arch, "-", name, ".csv"]) cols =<< func n
+    measureTest ty name = measure name (ty $ name `mappend` "Test")
+    measureType suf ty name = measure name (ty $ name `mappend` suf)
