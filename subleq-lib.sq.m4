@@ -970,12 +970,59 @@ $(@@rl Rs, From, S0, S1, LFinish);
 LFinish:dnl
 dnl Dec From;
 Sf; Snf Snf Aend;
+
+dnl  F <= 3
+dnl  Rs: {Rd[w-1:0]} Rs: {0}
+dnl  rl8(Rs, 4 - F - 1)
+dnl  Rs: {Rs[8F+8-1:0], Rs[w-1:8F+8]} Rd: {0}
+dnl  slrlm8(Rd, Rs, 1)
+dnl  Rs: {Rs[8F-1:0], Rs[w-1:8F+8], Rs[8F+8-1:8F]} Rd: {0,Rs[8F+8-1:8F]}
+dnl  rl8(Rs, F)
+
+PureSubleq(`@@lbui') Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {Rd[From+Size-1:From]}
+Rd;
+dnl Inc From;
+From Sf; CWb From; From Snf; Dec Snf;
+L1:$(@@rl8 Rs, Snf, S0, S1, L2);
+L2:$(@@slrl8m Rd, Rs, S0, L3);
+L3:From; Sf From;
+$(@@rl8 Rs, From, S0, S1, LFinish);
+LFinish:dnl
+dnl Dec From;
+Sf; Snf Snf Aend;
+CWb:4;
+
+PureSubleq(`@@lhui') Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {Rd[From+Size-1:From]}
+Rd;
+dnl Inc From;
+From Sf; CWh From; From Snf; Dec Snf;
+L1:$(@@rl16 Rs, Snf, S0, S1, L2);
+L2:$(@@slrl16m Rd, Rs, S0, L3);
+L3:From; Sf From;
+$(@@rl16 Rs, From, S0, S1, LFinish);
+LFinish:dnl
+dnl Dec From;
+Sf; Snf Snf Aend;
+CWh:2;
+
 ifelse(ARCH,`subleqr',`
 @@lvui Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend // Rd <- {(w-S)%0, Rd[From+Size-1,From]} ; modify Rs
 From Z; From Z; Size Z; Z Sf; CW Sf; Z;
 $(@@jnzp Sf, Lh, Ll, Ll);
 Lh:Sf; $(@@lvuri Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend);
 Ll:Sf; $(@@lvuli Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend);
+
+@@lbui Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {(w-S)%0, Rd[From+Size-1,From]} ; modify Rs
+CWbh Sf; From Sf Ll;
+Lh:Sf; $(@@lbuli Rd, Rs, From, S0, S1, Sf, Snf, Aend);
+Ll:Sf; $(@@lburi Rd, Rs, From, S0, S1, Sf, Snf, Aend);
+CWbh:(- 2);
+
+@@lhui Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {(w-S)%0, Rd[From+Size-1,From]} ; modify Rs
+CWbh Sf; From Sf Ll;
+Lh:Sf; $(@@lhuli Rd, Rs, From, S0, S1, Sf, Snf, Aend);
+Ll:Sf; $(@@lhuri Rd, Rs, From, S0, S1, Sf, Snf, Aend);
+CWbh:(- 1);
 
 dnl  F + S <= w
 dnl  F2 = w - F
@@ -1000,7 +1047,7 @@ From; Sf From; Sf; Snf Snf Aend;
 @@lbuli Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {0, Rs[w-1:w-8]}
 Rd;
 dnl Inc From;
-From Sf; CW From; From Snf; Dec Snf;
+From Sf; CWb From; From Snf; Dec Snf;
 L1:$(@@rl8 Rs, Snf, S0, S1, L2);
 L2:$(@@slrl8m Rd, Rs, S0, L3);
 L3:Dec Z; Z Snf; Z;
@@ -1008,11 +1055,12 @@ $(@@rr8 Rs, Snf, S0, S1, LFinish);
 LFinish:dnl
 dnl Dec From;
 From; Sf From; Sf; Snf Snf Aend;
+CWb:4;
 
 @@lhuli Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {0, Rs[w-1:w-16]}
 Rd;
 dnl Inc From;
-From Sf; CW From; From Snf; Dec Snf;
+From Sf; CWh From; From Snf; Dec Snf;
 L1:$(@@rl16 Rs, Snf, S0, S1, L2);
 L2:$(@@slrl16m Rd, Rs, S0, L3);
 L3:Dec Z; Z Snf; Z;
@@ -1020,6 +1068,7 @@ $(@@rr16 Rs, Snf, S0, S1, LFinish);
 LFinish:dnl
 dnl Dec From;
 From; Sf From; Sf; Snf Snf Aend;
+CWh:2;
 
 dnl  F + S <= w
 dnl  Rs: {Rd[w-1:0]} Rs: {0}
@@ -1062,13 +1111,33 @@ LFinish:dnl
 Sf Sf Aend;
 ')
 
-@@lbPrepare Addr, From, Aend // From <- Addr[1:0], Addr <- Addr[w:2]
+@@lbuSub Rd, Offset, Base, SAddr, SPos, S0, S1, S2, S3, Aend
+Offset Z; Base Z;
+Z SAddr; Z;
+$(@@lsbPrepare SAddr, SPos, L0);
+L0:$(@@lwSub1 St, Saddr, LFinish);
+L1:$(@@lbui Rd, St, Pos, S0, S1, S2, S3, Aend);
+
+@@sbSub Rs, Offset, Base, SAddr, SPos, S0, S1, S2, S3, Aend
+Offset Z; Base Z;
+Z SAddr; Z;
+$(@@lsbPrepare SAddr, SPos, L0);
+L0:$(@@lwSub1 St, Saddr, LFinish);
+L1:$(@@sbi Sd, St, Pos, S0, S1, S2, S3, L2);
+L2:$(@@swSub1 Sd, SAddr, Aend);
+
+PureSubleq(`@@lsbPrepare') Addr, From, Aend // From <- Addr[1:0], Addr <- Addr[w:2]
+Rd;
+
+ifelse(ARCH,`subleqr',`
+@@lsbPrepare Addr, From, Aend // From <- Addr[1:0], Addr <- Addr[w:2]
 From;
 L1:$(@@srl1ca From, Addr, L2);
 L2:$(@@sl1m From, L3);
 L3:$(@@srl1ca From, Addr, Aend);
 
-@@lhPrepare Addr, From, Aend // From <- Addr[1], Addr <- Addr[w:2]
+@@lshPrepare Addr, From, Aend // From <- Addr[1], Addr <- Addr[w:2]
 From;
 L1:$(@@srl1m Addr, L2);
 L2:$(@@srl1ca From, Addr, Aend);
+')
