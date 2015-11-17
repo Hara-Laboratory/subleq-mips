@@ -318,29 +318,46 @@ prop_RlSlm rt rs saB = [sa] == [sa] && rt' == (rt `shift` s) Bit..|. (rs `shift`
 
 mask f s = ((1 `shift` s) - 1) `shift` (f - s + 1)
 
+type LSvi = (SubleqUWord -> SubleqUWord -> Int -> Int -> SubleqUWord)
 -- svi rt rs f s = (rt Bit..&. complement (mask f s)) Bit..|. ((rs Bit..&. mask (wordLength - 1) s) `shift` (f - wordLength + 1))
+svi :: LSvi
 svi rt rs f s = (rt Bit..&. complement (mask (f+s-1) s)) Bit..|. ((rs Bit..&. mask (s - 1) s) `shift` f)
 
-prop_Svi :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
-prop_Svi rt rs frB saB = [sa] == [sa] && rt' == svi rt rs f s
+testLSvi :: LSvi -> String -> SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+testLSvi lsvi subr rt rs frB saB = [fr', sa'] == [fr, sa] && rt' == lsvi rt rs f s
     where
       s = fromIntegral sa
       f = fromIntegral fr
       sa = saB `mod` (wordLength - fr + 1)
       fr = frB `mod` wordLength
-      [rt', rs', fr', sa'] = map fromIntegral $ executeSubroutine "sviTest" $ map fromIntegral [rt, rs, fr, sa]
+      [rt', rs', fr', sa'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr, sa]
 
+testLSbi :: Int -> LSvi -> String -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+testLSbi n lsvi subr rt rs frB = fr' == fr && rt' == lsvi rt rs f s
+    where
+      s = fromIntegral sa
+      f = fromIntegral (fr * sa)
+      sa = 1 `shift` n
+      fr = frB `mod` (wordLength `div` sa)
+      [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr]
+
+lvui :: LSvi
 -- svi rt rs f s = (rt Bit..&. complement (mask f s)) Bit..|. ((rs Bit..&. mask (wordLength - 1) s) `shift` (f - wordLength + 1))
 lvui rt rs f s = (rs Bit..&. (mask (f+s-1) s)) `shift` (-f)
 
+prop_Svi :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+prop_Svi = testLSvi svi "sviTest"
+
 prop_Lvui :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
-prop_Lvui rt rs frB saB = [sa] == [sa] && rt' == lvui rt rs f s
-    where
-      s = fromIntegral sa
-      f = fromIntegral fr
-      sa = saB `mod` (wordLength - fr + 1)
-      fr = frB `mod` wordLength
-      [rt', rs', fr', sa'] = map fromIntegral $ executeSubroutine "lvuiTest" $ map fromIntegral [rt, rs, fr, sa]
+prop_Lvui = testLSvi lvui "lvuiTest"
+
+prop_Sbi  = testLSbi 3 svi  "sbiTest"
+prop_Lbi  = testLSbi 3 lvui "lbuiTest"
+
+prop_Shi  = testLSbi 4 svi  "shiTest"
+prop_Lhi  = testLSbi 4 lvui "lhuiTest"
+
+
 
 prop_Addrb :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
 prop_Addrb rd rt rs = [rs'] == [rs] && rt' == rs Bit..&. 0x3 && rd' == rs `shift` (-2)
@@ -351,7 +368,7 @@ prop_Addrb rd rt rs = [rs'] == [rs] && rt' == rs Bit..&. 0x3 && rd' == rs `shift
       [rd', rt', rs'] = map fromIntegral $ executeSubroutine "addrbTest" $ map fromIntegral [rd, rt, rs]
 
 prop_Addrh :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
-prop_Addrh rd rt rs = [rs'] == [rs] && rt' == rs Bit..&. 0x1 && rd' == rs `shift` (-1)
+prop_Addrh rd rt rs = [rs'] == [rs] && rt' == (rs Bit..&. 0x2) `shift` (-1) && rd' == rs `shift` (-2)
     where
       d = fromIntegral rd
       t = fromIntegral rt
@@ -434,24 +451,6 @@ measureSrl n = do
                 let res = T.measureInsns $ executeSubroutineWithStates "srl" [0,x,y] maximumTry
                 return (x, y, res)
 
-measureSvi n = do
-    xs <- map floor <$> res n
-    zs <- replicateM n $ R.sample randomSize
-    ys <- forM zs (\ z -> R.sample (T.uniformTo (wordLength - z + 1)))
-    let xys = zip3 xs ys zs
-    return $ do (x, y, z) <- xys
-                let res = T.measureInsns $ executeSubroutineWithStates "sviTest" [0,x,y,z] maximumTry
-                return (x, y, z, res)
-
-measureLvui n = do
-    xs <- map floor <$> res n
-    zs <- replicateM n $ R.sample randomSize
-    ys <- forM zs (\ z -> R.sample (T.uniformTo (wordLength - z + 1)))
-    let xys = zip3 xs ys zs
-    return $ do (x, y, z) <- xys
-                let res = T.measureInsns $ executeSubroutineWithStates "lvuiTest" [0,x,y,z] maximumTry
-                return (x, y, z, res)
-
 measureShiftType sub n = do
     xs <- map floor <$> res n
     ys <- replicateM n $ R.sample (T.uniformTo wordLength)
@@ -459,6 +458,31 @@ measureShiftType sub n = do
     return $ do (x, y) <- xys
                 let res = T.measureInsns $ executeSubroutineWithStates sub [0,x,y] maximumTry
                 return (x, y, res)
+
+measureSviType sub n = do
+    xs <- map floor <$> res n
+    zs <- replicateM n $ R.sample randomSize
+    ys <- forM zs (\ z -> R.sample (T.uniformTo (wordLength - z + 1)))
+    let xys = zip3 xs ys zs
+    return $ do (x, y, z) <- xys
+                let res = T.measureInsns $ executeSubroutineWithStates sub [0,x,y,z] maximumTry
+                return (x, y, z, res)
+
+measureSbiType b sub n = do
+    xs <- map floor <$> res n
+    ys <- replicateM n $ R.sample (T.uniformTo (wordLength `div` (1 `shift` b :: SubleqWord) - 1))
+    let xys = zip xs ys
+    return $ do (x, y) <- xys
+                let r' = executeSubroutineWithStates sub [0,x,y] maximumTry
+                case r' of
+                  Nothing -> error $ mconcat [toString sub, " is non terminate with ", show (x,y)]
+                  Just _ -> return ()
+                let res = T.measureInsns $ r'
+                return (x, y, res)
+
+measureSvi = measureSviType "sviTest"
+measureLvui = measureSviType "lvuiTest"
+
 
 
 return []
@@ -474,7 +498,7 @@ main = do
     args <- getArgs
     if not ok then putStrLn "Verification Failed!" else return ()
     if args /= ["measure"] then return () else do
-      let n = 100000
+      let n = 10000
       {-
       putStrLn "Measure multu"
       outputCsv "measure-subleq-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
@@ -488,6 +512,10 @@ main = do
       measureType "" measureShiftType "sra" ["arg1","arg2","insns"] n
       measure "svi" measureSvi ["arg1","arg2","arg3","insns"] n
       measure "lvui" measureLvui ["arg1","arg2","arg3","insns"] n
+      measureTest (measureSbiType 3) "sbi"  ["arg1","arg2","insns"] n
+      measureTest (measureSbiType 3) "lbui"  ["arg1","arg2","insns"] n
+      measureTest (measureSbiType 4) "shi"  ["arg1","arg2","insns"] n
+      measureTest (measureSbiType 4) "lhui"  ["arg1","arg2","insns"] n
   where
     arch = "subleq"
     measure name func cols n = do

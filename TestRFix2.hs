@@ -410,7 +410,7 @@ prop_Addrb rd rt rs = [rs'] == [rs] && rt' == rs Bit..&. 0x3 && rd' == rs `shift
       [rd', rt', rs'] = map fromIntegral $ executeSubroutine "addrbTest" $ map fromIntegral [rd, rt, rs]
 
 prop_Addrh :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
-prop_Addrh rd rt rs = [rs'] == [rs] && rt' == rs Bit..&. 0x1 && rd' == rs `shift` (-1)
+prop_Addrh rd rt rs = [rs'] == [rs] && rt' == (rs Bit..&. 0x2) `shift` (-1) && rd' == rs `shift` (-2)
     where
       d = fromIntegral rd
       t = fromIntegral rt
@@ -542,6 +542,16 @@ measureLvui = measureSviType "lvuiTest"
 measureLvuli = measureSviType "lvuliTest"
 measureLvuri = measureSviType "lvuriTest"
 
+measureAddrbType sub n = do
+    xs <- map floor <$> res n
+    return $ do (x) <- xs
+                let r' = executeSubroutineWithStates sub [0,0,x] maximumTry
+                case r' of
+                  Nothing -> error $ mconcat [toString sub, " is non terminate with ", show x]
+                  Just _ -> return ()
+                let res = T.measureInsns $ r'
+                return (x, res)
+
 outputCsv :: CSV.ToRecord a => FilePath -> [BL.ByteString] -> [a] -> IO ()
 outputCsv path header f = BL.writeFile path =<< (return $ BL.concat [BL.intercalate "," header, "\n", CSV.encode f])
 
@@ -554,7 +564,7 @@ main = do
     putStrLn $ show args
     if not ok then putStrLn "Verification Failed!" else return ()
     if args /= ["measure"] then return () else do
-      let n = 1000
+      let n = 10000
       -- putStrLn "Measure multu"
       -- outputCsv "measure-subleqr-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
       -- putStrLn "Measure sra"
@@ -562,18 +572,29 @@ main = do
       -- putStrLn "Measure srl"
       -- outputCsv "measure-subleqr-srl.csv" ["arg1","arg2","insns"] =<< measureSrl n
       measureType "" measureShiftType "sll" ["arg1","arg2","insns"] n
-      measureType "" measureShiftType "srl" ["arg1","arg2","insns"] n
-      measureType "" measureShiftType "sra" ["arg1","arg2","insns"] n
-      measure "svi" measureSvi ["arg1","arg2","arg3","insns"] n
-      measure "svli" measureSvli ["arg1","arg2","arg3","insns"] n
-      measure "svri" measureSvri ["arg1","arg2","arg3","insns"] n
-      measure "lvui" measureLvui ["arg1","arg2","arg3","insns"] n
-      measure "lvuli" measureLvuli ["arg1","arg2","arg3","insns"] n
-      measure "lvuri" measureLvuri ["arg1","arg2","arg3","insns"] n
-      measureTest (measureSbiType 3) "sbli"  ["arg1","arg2","insns"] n
-      measureTest (measureSbiType 3) "sbri"  ["arg1","arg2","insns"] n
-      measureTest (measureSbiType 3) "lbuli" ["arg1","arg2","insns"] n
-      measureTest (measureSbiType 3) "lburi" ["arg1","arg2","insns"] n
+      -- measureType "" measureShiftType "srl" ["arg1","arg2","insns"] n
+      -- measureType "" measureShiftType "sra" ["arg1","arg2","insns"] n
+      --
+      -- measure "svi" measureSvi ["arg1","arg2","arg3","insns"] n
+      -- measure "svli" measureSvli ["arg1","arg2","arg3","insns"] n
+      -- measure "svri" measureSvri ["arg1","arg2","arg3","insns"] n
+      -- measure "lvui" measureLvui ["arg1","arg2","arg3","insns"] n
+      -- measure "lvuli" measureLvuli ["arg1","arg2","arg3","insns"] n
+      -- measure "lvuri" measureLvuri ["arg1","arg2","arg3","insns"] n
+      -- measureTest (measureSbiType 3) "sbi"   ["arg1","arg2","insns"] n
+      -- measureTest (measureSbiType 3) "sbli"  ["arg1","arg2","insns"] n
+      -- measureTest (measureSbiType 3) "sbri"  ["arg1","arg2","insns"] n
+      measureTest (measureSbiType 3) "lbui"  ["arg1","arg2","insns"] n
+      -- measureTest (measureSbiType 3) "lbuli" ["arg1","arg2","insns"] n
+      -- measureTest (measureSbiType 3) "lburi" ["arg1","arg2","insns"] n
+      -- measureTest (measureSbiType 4) "shi"   ["arg1","arg2","insns"] n
+      -- measureTest (measureSbiType 4) "shli"  ["arg1","arg2","insns"] n
+      -- measureTest (measureSbiType 4) "shri"  ["arg1","arg2","insns"] n
+      measureTest (measureSbiType 4) "lhui"  ["arg1","arg2","insns"] n
+      -- measureTest (measureSbiType 4) "lhuli" ["arg1","arg2","insns"] n
+      -- measureTest (measureSbiType 4) "lhuri" ["arg1","arg2","insns"] n
+      -- measureTest measureAddrbType "addrb" ["arg1","insns"] n
+      -- measureTest measureAddrbType "addrh" ["arg1","insns"] n
   where
     arch = "subleqr"
     measure name func cols n = do
