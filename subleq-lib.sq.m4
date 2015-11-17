@@ -338,7 +338,13 @@ L1:$(@@rl4m Ad, Aend);
 $(@@rl8m Ad, L1);
 L1:$(@@rl8m Ad, Aend);
 
-@@slrl1m As, Ar, S0, Aend
+@@rl30m Ad, Aend
+$(@@rl16m Ad, L1);
+L1:$(@@rl8m Ad, L2);
+L2:$(@@rl4m Ad, L3);
+L3:$(@@rl2m Ad, Aend);
+
+@@slrl1m As, Ar, S0, Aend // As <- {As[w-2:0], Ar[w-1]}  Ar <- {Ar[w-2:0], Ar[w-1]}
 $(@@sl1ca S0, Ar, L1);
 L1:Z S0 Lz;
 Lp:Inc Ar; S0; Dec S0;
@@ -706,8 +712,39 @@ PureSubleq(`@@rlslm') Rd, Rs, Sa, S0, S1, Aend // left rotate Rd by Sa, left shi
 Sa S0;
 Loop:Inc S0 LBody;
 LFinish:S0; S1 S1 Aend;
+LBody:$(@@rlsl1m Rd, Rs, Loop);
+
+PureSubleq(`@@rlsli3m') Rd, Rs, Sa, S0, S1, Aend // left rotate Rd by Sa, left shift Rs by Sa : Rd <- {Rd[w-sa-1:0], Rs[w-1:w-sa]} ; Rs <- {Rs[w-sa-1:0], sa%0}
+Sa S0;
+Loop:Inc S0 LBody;
+LFinish:S0; S1 S1 Aend;
+LBody:$(@@rlsl8m Rd, Rs, Loop);
+
+PureSubleq(`@@rlsli4m') Rd, Rs, Sa, S0, S1, Aend // left rotate Rd by Sa, left shift Rs by Sa : Rd <- {Rd[w-sa-1:0], Rs[w-1:w-sa]} ; Rs <- {Rs[w-sa-1:0], sa%0}
+Sa S0;
+Loop:Inc S0 LBody;
+LFinish:S0; S1 S1 Aend;
+LBody:$(@@rlsl16m Rd, Rs, Loop);
+
+@@rlsl1m Rd, Rs, Aend // left rotate Rd by 1, left shift Rs by 1 : Rd <- {Rd[w-2:0], Rs[w-1]} ; Rs <- {Rs[w-2:0], sa%0}
 LBody:$(@@sl1m Rd, LBody2);
-LBody2:$(@@sl1ca Rd, Rs, Loop);
+LBody2:$(@@sl1ca Rd, Rs, Aend);
+
+@@rlsl2m Rd, Rs, Aend
+LBody:$(@@rlsl1m Rd, Rs, LBody2);
+LBody2:$(@@rlsl1m Rd, Rs, Aend);
+
+@@rlsl4m Rd, Rs, Aend
+LBody:$(@@rlsl2m Rd, Rs, LBody2);
+LBody2:$(@@rlsl2m Rd, Rs, Aend);
+
+@@rlsl8m Rd, Rs, Aend
+LBody:$(@@rlsl4m Rd, Rs, LBody2);
+LBody2:$(@@rlsl4m Rd, Rs, Aend);
+
+@@rlsl16m Rd, Rs, Aend
+LBody:$(@@rlsl8m Rd, Rs, LBody2);
+LBody2:$(@@rlsl8m Rd, Rs, Aend);
 
 PureSubleq(`@@slrlm') Rd, Rs, Sa, S0, S1, Aend // left shift Rd by Sa, left rotate Rs by Sa : Rd <- {Rd[w-sa-1:0], Rs[w-1:w-sa]} ; Rs <- {Rs[w-sa-1:0], Rs[w-1:w-sa]}
 Sa S0;
