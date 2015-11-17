@@ -939,18 +939,61 @@ L3:Sf Sf Aend;
 ')
 
 ifelse(ARCH,`subleqr',`
-@@addrh Rd, Rt, Rs, Aend // Rd <- {1%b0, Rs[w-1:1]}, Rt <- Rs[0]
+@@addrh Rd, Rt, Rs, S0, Aend // Rd <- {2%b0, Rs[w-1:2]}, Rt <- Rs[1]
 Rt; Rs Z; Rd; Z Rd; Z;
-$(@@srl1ca Rt, Rd, Aend);
+$(@@srl1m Rd, L2);
+L2:$(@@srl1ca Rt, Rd, Aend);
+L3:$(@@srl1m Rd, Aend);
+L4:S0 S0 Aend;
 ')
 
 ifelse(ARCH,`subleqr',`
-@@addrb Rd, Rt, Rs, Aend // Rd <- {2%b0, Rs[w-1:2]}, Rt <- Rs[1:0]
+@@addrb Rd, Rt, Rs, S0, Aend // Rd <- {2%b0, Rs[w-1:2]}, Rt <- Rs[1:0]
 Rt; Rs Z; Rd; Z Rd; Z;
-$(@@srl1ca Rt, Rd, L1);
-L1:Rt Z; Z Rt; Z;
-$(@@srl1ca Rt, Rd, Aend);
+$(@@srl1ca S0, Rd, L1);
+L1:$(@@sl1m S0, L1b);
+L1b:$(@@srl1ca S0, Rd, L2);
+L2:$(@@srl1ca Rt, S0, L3);
+L3:$(@@sl1m Rt, L3b);
+L3b:$(@@srl1ca Rt, S0, L4);
+L4:S0 S0 Aend;
 ')
+
+PureSubleq(`@@addrh') Rd, Rt, Rs, S0, Aend // Rd <- {1%b0, Rs[w-1:2]}, Rt <- Rs[1]
+Rt; Rs Z; Rd; Z Rd; Z;
+L1:$(@@rl30m Rd, L2);
+L2:Rd Z; Z S0; Z;
+$(@@sl1ca Rt, S0, L3);
+L3:$(@@sl1m Rt, L4);
+L4:$(@@sl1ca Rt, S0, L5);
+L5:S0; Rt S0; Rt;
+Ll0:Inc S0 Ll1;
+S0 S0 Aend;
+Ll1:De2p31 Rd; Inc S0 Ll2;
+S0 S0 Aend;
+Ll2:De2p31 Rd; Inc Rt; Inc S0 Ll3;
+S0 S0 Aend;
+Ll3:De2p31 Rd;
+S0 S0 Aend;
+De2p31:(shift 1 30);
+
+PureSubleq(`@@addrb') Rd, Rt, Rs, S0, Aend // Rd <- {1%b0, Rs[w-1:2]}, Rt <- Rs[1:0]
+Rt; Rs Z; Rd; Z Rd; Z;
+L1:$(@@rl30m Rd, L2);
+L2:Rd Z; Z S0; Z;
+$(@@sl1ca Rt, S0, L3);
+L3:$(@@sl1m Rt, L4);
+L4:$(@@sl1ca Rt, S0, L5);
+L5:S0; Rt S0;
+Ll0:Inc S0 Ll1;
+S0 S0 Aend;
+Ll1:De2p31 Rd; Inc S0 Ll2;
+S0 S0 Aend;
+Ll2:De2p31 Rd; Inc S0 Ll3;
+S0 S0 Aend;
+Ll3:De2p31 Rd;
+S0 S0 Aend;
+De2p31:(shift 1 30);
 
 dnl  F + S <= w
 dnl  Rs: {Rd[w-1:0]} Rs: {0}
