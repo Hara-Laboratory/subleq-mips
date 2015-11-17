@@ -815,6 +815,45 @@ L2:$(@@rlslm Rd, Rs, Size, S0, S1, L3);
 L3:$(@@rl Rd, From, S0, S1, LFinish);
 LFinish:From; Sf From;
 Sf; Snf Snf Aend;
+
+
+dnl  precondition: F + S <= wb
+dnl  sll8(Rs, wb - S)
+dnl  Rd: {Rd[w-1:0]} Rs: {Rs[S-1:0], Rs[w-1:S]}
+dnl  rl8(Rd, wb - F - S)
+dnl  Rd: {Rd[F+S-1:0], Rd[w-1:F+S]} Rs: {Rs[S-1:0], Rs[w-1:S]}
+dnl  rlsl8m(Rd, Rs, S)
+dnl  Rd: {Rd[F-1:0], Rd[w-1:F+S], Rs[S-1:0]} Rs: {Rs[w-1:S], S%0}
+dnl  rl8(Rd, F)
+dnl  Rd: {Rd[w-1:F+S], Rs[S-1:0], Rd[F-1:0]} Rs: {Rs[w-1:0], S%0}
+PureSubleq(`@@sbi') Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {Rd[w-1:From+1], Rs[Size-1:0], Rd[From-Size,0]} ; modify Rd, Rs
+dnl $(@@jznz Size, Aend, LDo);
+LDo:Dec Snf; CWb Z; Z Snf; Z;
+$(@@slli3sub Sf, Rs, Snf, S0, S1, L0);
+L0:Sf Z; Sf; Rs; Z Rs; Z;
+dnl
+From Sf; From Snf;
+L1:$(@@rl8 Rd, Snf, S0, S1, L2);
+L2:$(@@rlsl8m Rd, Rs, L3);
+L3:$(@@rl8 Rd, From, S0, S1, LFinish);
+LFinish:From; Sf From;
+Sf; Snf Snf Aend;
+CWb:4;
+
+PureSubleq(`@@shi') Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {Rd[w-1:From+1], Rs[Size-1:0], Rd[From-Size,0]} ; modify Rd, Rs
+dnl $(@@jznz Size, Aend, LDo);
+LDo:Dec Snf; CWh Z; Z Snf; Z;
+$(@@slli4sub Sf, Rs, Snf, S0, S1, L0);
+L0:Sf Z; Sf; Rs; Z Rs; Z;
+dnl
+From Sf; From Snf;
+L1:$(@@rl16 Rd, Snf, S0, S1, L2);
+L2:$(@@rlsl16m Rd, Rs, L3);
+L3:$(@@rl16 Rd, From, S0, S1, LFinish);
+LFinish:From; Sf From;
+Sf; Snf Snf Aend;
+CWh:2;
+
 ifelse(ARCH,`subleqr',`
 @@svi Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend // Rd <- {Rd[w-1:From+1], Rs[Size-1,0], Rd[From-Size,0]} ; modify Rd, Rs
 From Z; From Z; Size Z; Z Sf; CW Sf; Z;
