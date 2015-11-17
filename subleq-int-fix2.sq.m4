@@ -156,3 +156,21 @@ $(@@lwSub T5, Addr, Z, L1);
 L1:$(@@svi T5, Rs, Pos, T6, T0, T1, T2, T3, L2);
 L2:$(@@swSub T5, Addr, Z, L3);
 L3:T5 T5 End;
+
+@lbuiTest Rd, Rs, From
+$(@@lbui Rd, Rs, From, T0, T1, T2, T3, End);
+
+@lhuiTest Rd, Rs, From
+$(@@lhui Rd, Rs, From, T0, T1, T2, T3, End);
+
+@sbiTest Rd, Rs, From
+$(@@sbi Rd, Rs, From, T0, T1, T2, T3, End);
+
+@shiTest Rd, Rs, From
+$(@@shi Rd, Rs, From, T0, T1, T2, T3, End);
+
+@addrhTest Rd, Rt, Rs
+$(@@addrh Rd, Rt, Rs, T0, End);
+
+@addrbTest Rd, Rt, Rs
+$(@@addrb Rd, Rt, Rs, T0, End);
