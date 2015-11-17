@@ -862,16 +862,16 @@ Lh:Sf; $(@@svri Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend);
 Ll:Sf; $(@@svli Rd, Rs, From, Size, S0, S1, Sf, Snf, Aend);
 
 @@sbi Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {Rd[w-1:8*From+1], Rs[8-1,0], Rd[8*From-8,0]} ; modify Rd, Rs
-From Z; From Z; Size Z; Z Sf; CW Sf; Z;
-$(@@jnzp Sf, Lh, Ll, Ll);
-Lh:Sf; $(@@sbri Rd, Rs, From, S0, S1, Sf, Snf, Aend);
-Ll:Sf; $(@@sbli Rd, Rs, From, S0, S1, Sf, Snf, Aend);
+CWbh Sf; From Sf Lh;
+Ll:Sf; $(@@sbri Rd, Rs, From, S0, S1, Sf, Snf, Aend);
+Lh:Sf; $(@@sbli Rd, Rs, From, S0, S1, Sf, Snf, Aend);
+CWbh:(- 2);
 
 @@shi Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {Rd[w-1:8*From+1], Rs[8-1,0], Rd[8*From-8,0]} ; modify Rd, Rs
-From Z; From Z; Size Z; Z Sf; CW Sf; Z;
-$(@@jnzp Sf, Lh, Ll, Ll);
-Lh:Sf; $(@@shri Rd, Rs, From, S0, S1, Sf, Snf, Aend);
-Ll:Sf; $(@@shli Rd, Rs, From, S0, S1, Sf, Snf, Aend);
+CWhh Sf; From Sf Lh;
+Ll:Sf; $(@@shri Rd, Rs, From, S0, S1, Sf, Snf, Aend);
+Lh:Sf; $(@@shli Rd, Rs, From, S0, S1, Sf, Snf, Aend);
+CWhh:(- 1);
 
 dnl  precondition: From + Size <= w, prefer From + S >= w / 2
 dnl  F2 = w - From
@@ -891,20 +891,22 @@ $(@@rr Rd, Sf, S0, S1, L3);
 L3:Sf Sf Aend;
 
 @@sbli Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {Rd[w-1:8*From+1], Rs[7,0], Rd[8*From-8,0]} ; modify Rd, Rs
-From Sf; CW Z; Z Sf; Z;
+From Sf; CWb Z; Z Sf; Z;
 $(@@rl8 Rd, Sf, S0, S1, L1);
 L1:$(@@rrsr8m Rd, Rs, S0, S1, L2);
 L2:Dec Sf;
 $(@@rr8 Rd, Sf, S0, S1, L3);
 L3:Sf Sf Aend;
+CWb:4;
 
 @@shli Rd, Rs, From, S0, S1, Sf, Snf, Aend // Rd <- {Rd[w-1:8*From+1], Rs[7,0], Rd[8*From-8,0]} ; modify Rd, Rs
-From Sf; CW Z; Z Sf; Z;
+From Sf; CWh Z; Z Sf; Z;
 $(@@rl16 Rd, Sf, S0, S1, L1);
 L1:$(@@rrsr16m Rd, Rs, S0, S1, L2);
 L2:Dec Sf;
 $(@@rr16 Rd, Sf, S0, S1, L3);
 L3:Sf Sf Aend;
+CWh:2;
 
 dnl  precondition: F + S <= w, prefer F + S <= w / 2
 dnl  F = From
