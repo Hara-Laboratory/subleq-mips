@@ -302,6 +302,46 @@ prop_Sw rt rs  = [rt', rs'] == [rt, rt]
     where
       [rt', rs'] = map fromIntegral $ executeSubroutine "swTest" $ map fromIntegral [rt, rs]
 
+
+testLSb' target n lsvi subr rt rs frB = ([rt, rs, fr], fr'', [rt', rs', fr'], t, lsvi rt rs f s, lsvi rs rt f s, [f, s])
+    where
+      t = if target then rt' else rs'
+      s = fromIntegral sa
+      f = fromIntegral (fr * sa)
+      sa = 1 `shift` n
+      fr = (frB `mod` (wordLength `div` sa))
+      fr'' = fr * (sa `div` 8)
+      [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr'']
+
+testSb :: Int -> LSvi -> String -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+testSb n lsvi subr rt rs frB = fr' == fr'' && rs' == lsvi rs rt f s
+    where
+      s = fromIntegral sa
+      f = fromIntegral (fr * sa)
+      sa = 1 `shift` n
+      fr = (frB `mod` (wordLength `div` sa))
+      fr'' = fr * (sa `div` 8)
+      [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr'']
+
+testLb :: Int -> LSvi -> String -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
+testLb n lsvi subr rt rs frB = fr' == fr'' && rt' == lsvi rt rs f s
+    where
+      s = fromIntegral sa
+      f = fromIntegral (fr * sa)
+      sa = 1 `shift` n
+      fr = (frB `mod` (wordLength `div` sa))
+      fr'' = fr * (sa `div` 8)
+      [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr'']
+
+prop_Sw2  = testSb 5 (\rt rs f s -> rs)  "swTest"
+prop_Lw2  = testLb 5 (\rt rs f s -> rs) "lwTest"
+prop_Sh   = testSb 4 svi  "shTest"
+prop_Lhu  = testLb 4 lvui "lhuTest"
+prop_Sb   = testSb 3 svi  "sbTest"
+prop_Lbu  = testLb 3 lvui "lbuTest"
+
+
+
 prop_Rl :: SubleqUWord -> SubleqUWord -> Bool
 prop_Rl rt saB = [sa] == [sa] && rt' == (rt `shift` s) Bit..|. (rt `shift` (s - wordLength))
     where
@@ -358,6 +398,12 @@ prop_Shi  = testLSbi 4 svi  "shiTest"
 prop_Lhi  = testLSbi 4 lvui "lhuiTest"
 
 
+prop_Addrw :: SubleqUWord -> SubleqUWord -> Bool
+prop_Addrw rd rs = [rs'] == [rs] && rd' == rs `shift` (-2)
+    where
+      d = fromIntegral rd
+      s = fromIntegral rs
+      [rd', rs'] = map fromIntegral $ executeSubroutine "addrwTest" $ map fromIntegral [rd, rs]
 
 prop_Addrb :: SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
 prop_Addrb rd rt rs = [rs'] == [rs] && rt' == rs Bit..&. 0x3 && rd' == rs `shift` (-2)
