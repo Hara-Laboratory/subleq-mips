@@ -40,6 +40,9 @@ import qualified Data.Random.Distribution.Exponential as R
 import qualified Data.Random.Distribution.Uniform as R
 
 import qualified Data.Csv as CSV
+import Data.Vector(Vector)
+import qualified Data.Vector as V
+import qualified System.FilePath as FP
 
 import qualified SubleqTestUtils as T
 
@@ -71,6 +74,8 @@ subleqModule = either (error . show) A.expandMacroAll $ parse A.parseModule "par
 inc, dec :: SubleqWord
 inc = 0x4
 dec = 0x5
+
+-- \mo-> renderLoadPackResult $ A.loadModulePacked (memoryArchitectureFromConfig cfg) (s^.startAddress) (expand mo) (initialMemFromConfigure cfg)
 
 subleqMA :: A.MemoryArchitecture (M.Map SubleqWord SubleqWord)
 subleqMA = A.MemoryArchitecture { A.instructionLength = 3
@@ -529,6 +534,15 @@ measureSbiType b sub n = do
 measureSvi = measureSviType "sviTest"
 measureLvui = measureSviType "lvuiTest"
 
+measureAddrbType sub n = do
+    xs <- map floor <$> res n
+    return $ do (x) <- xs
+                let r' = executeSubroutineWithStates sub [0,0,x] maximumTry
+                case r' of
+                  Nothing -> error $ mconcat [toString sub, " is non terminate with ", show x]
+                  Just _ -> return ()
+                let res = T.measureInsns $ r'
+                return (x, res)
 
 
 return []
@@ -545,14 +559,12 @@ main = do
     if not ok then putStrLn "Verification Failed!" else return ()
     if args /= ["measure"] then return () else do
       let n = 10000
-      {-
       putStrLn "Measure multu"
       outputCsv "measure-subleq-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
       putStrLn "Measure sra"
       outputCsv "measure-subleq-sra.csv" ["arg1","arg2","insns"] =<< measureSra n
       putStrLn "Measure srl"
       outputCsv "measure-subleq-srl.csv" ["arg1","arg2","insns"] =<< measureSrl n
-      -}
       measureType "" measureShiftType "sll" ["arg1","arg2","insns"] n
       measureType "" measureShiftType "srl" ["arg1","arg2","insns"] n
       measureType "" measureShiftType "sra" ["arg1","arg2","insns"] n
@@ -562,6 +574,11 @@ main = do
       measureTest (measureSbiType 3) "lbui"  ["arg1","arg2","insns"] n
       measureTest (measureSbiType 4) "shi"  ["arg1","arg2","insns"] n
       measureTest (measureSbiType 4) "lhui"  ["arg1","arg2","insns"] n
+      measureTest measureAddrbType "addrb" ["arg1","insns"] n
+      measureTest measureAddrbType "addrh" ["arg1","insns"] n
+    case args of
+      ("read-trace":fs) -> forM_ fs readTraceFromFile
+      _ -> return ()
   where
     arch = "subleq"
     measure name func cols n = do
@@ -569,3 +586,40 @@ main = do
       outputCsv (mconcat ["measure-", arch, "-", name, ".csv"]) cols =<< func n
     measureTest ty name = measure name (ty $ name `mappend` "Test")
     measureType suf ty name = measure name (ty $ name `mappend` suf)
+
+readTraceFromFile :: FilePath -> IO ()
+readTraceFromFile filename = do
+    let outputfilename = FP.replaceBaseName filename ("measure-subleq-" ++ FP.takeBaseName filename)
+    f <- BL.readFile filename
+    either (\x -> return ()) id $ (BL.writeFile outputfilename) . CSV.encode . M.toList <$> readTrace f
+
+data SubleqArguments = LoadStore SubleqWord SubleqWord SubleqWord
+    deriving (Show, Read, Eq, Ord)
+
+parseTrace :: BL.ByteString -> Either String (Vector (String, SubleqArguments))
+parseTrace = fmap (V.map conv) . CSV.decode CSV.NoHeader
+    where
+      conv (insn, offset, src1, src2, res_lw) = (insn, LoadStore (Prelude.read offset + Prelude.read src1) (Prelude.read src2) (Prelude.read res_lw))
+
+
+traceExecute :: [(String, SubleqArguments)] -> [(String, Integer)]
+traceExecute = map (\(insn, args) -> (insn, f insn args))
+
+f :: String -> SubleqArguments -> Integer
+f insn args = load (ncycle insn) args
+load (addrRoutine, liRoutine, posF) (LoadStore addr rd mval) = 12 + measureAddr addrRoutine addr + nLwSub1 + measureLoad liRoutine (posF addr) mval rd
+measureAddr sub addr = T.measureInsns $ executeSubroutineWithStates (sub ++ "Test") [0,0,addr] (Just 100)
+measureLoad sub pos mval rd = T.measureInsns $ executeSubroutineWithStates (sub ++ "Test") [rd,mval,pos] (Just 100)
+nLwSub1 = 6
+nSwSub1 = 10
+ncycle :: (Num a, Bits a, Integral a) => String -> (String, String, a -> a)
+ncycle "lbu" = ("addrb", "lbui", \ n -> n `mod` 4)
+ncycle "lb"  = ("addrb", "lbui", \ n -> n `mod` 4)
+ncycle "sb"  = ("addrb", "sbi",  \ n -> n `mod` 4)
+ncycle "lhu" = ("addrh", "lhui", \ n -> (n `mod` 4) `shift` (-1))
+ncycle "lh"  = ("addrh", "lhui", \ n -> (n `mod` 4) `shift` (-1))
+ncycle "sh"  = ("addrh", "shi",  \ n -> (n `mod` 4) `shift` (-1))
+
+readTrace :: BL.ByteString -> Either String (Map String Integer)
+readTrace trace = M.fromListWith (+) . traceExecute . V.toList <$> parseTrace trace
+

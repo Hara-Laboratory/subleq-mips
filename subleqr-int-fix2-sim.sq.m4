@@ -39,5 +39,27 @@ $(@@xorDSub  Rd, Rs, Rt, T0, T1, End);
 @norD Rd, Rs, Rt
 $(@@norDSub  Rd, Rs, Rt, T0, T1, End);
 
-@lui Rd, Imm
-$(@@luiSub  Rd, Imm, T0, T1, End);
+dnl @lui Rd, Imm
+dnl $(@@luiSub  Rd, Imm, T0, T1, End);
+
+@lw Rt, Addr, Offset
+$(@@lwSub Rt, Addr, Offset, T0, T1, T2, T3, T4, End);
+
+@sw Rt, Addr, Offset
+$(@@swSub Rt, Addr, Offset, T0, T1, T2, T3, T4, End);
+
+@lhu Rt, Addr, Offset
+$(@@lhuSub Rt, Addr, Offset, T0, T1, T2, T3, T4, T5, T6, T7, End);
+T7:0;
+
+@sh Rt, Addr, Offset
+$(@@shSub Rt, Addr, Offset, T0, T1, T2, T3, T4, T5, T6, T7, End);
+T7:0;
+
+@lbu Rt, Addr, Offset
+$(@@lbuSub Rt, Addr, Offset, T0, T1, T2, T3, T4, T5, T6, T7, End);
+T7:0;
+
+@sb Rt, Addr, Offset
+$(@@sbSub Rt, Addr, Offset, T0, T1, T2, T3, T4, T5, T6, T7, End);
+T7:0;

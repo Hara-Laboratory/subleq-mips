@@ -144,6 +144,30 @@ LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
 @not Rd, Rs, Rt
 $(@@inv  Rd, Rs, T0, End);
 
+@lwTest Rt, Rs
+$(@@lwSub Rt, Zero, One, T0, T1, T2, T3, T4, End);
+Zero:0 One:4;
+
+@swTest Rt, Rs
+$(@@swSub Rt, Zero, One, T0, T1, T2, T3, T4, End);
+Zero:0 One:4;
+
+@lbuTest Rt, Rs, Offset
+$(@@lbuSub Rt, One, Offset, T0, T1, T2, T3, T4, T5, T6, T7, End);
+Zero:0 One:4 T7:0;
+
+@sbTest Rt, Rs, Offset
+$(@@sbSub Rt, One, Offset, T0, T1, T2, T3, T4, T5, T6, T7, End);
+Zero:0 One:4 T7:0;
+
+@lhuTest Rt, Rs, Offset
+$(@@lhuSub Rt, One, Offset, T0, T1, T2, T3, T4, T5, T6, T7, End);
+Zero:0 One:4 T7:0;
+
+@shTest Rt, Rs, Offset
+$(@@shSub Rt, One, Offset, T0, T1, T2, T3, T4, T5, T6, T7, End);
+Zero:0 One:4 T7:0;
+
 @lui Rd, Imm
 $(@@luiSub  Rd, Imm, T0, T1, End);
 
@@ -214,6 +238,9 @@ $(@@lbuli Rd, Rs, From, T0, T1, T2, T3, End);
 
 @lburiTest Rd, Rs, From
 $(@@lburi Rd, Rs, From, T0, T1, T2, T3, End);
+
+@addrwTest Rd, Rt, Rs
+$(@@addrw Rd, Rt, Rs, T0, End);
 
 @addrhTest Rd, Rt, Rs
 $(@@addrh Rd, Rt, Rs, T0, End);
