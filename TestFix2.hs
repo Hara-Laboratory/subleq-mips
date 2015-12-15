@@ -119,7 +119,7 @@ maximumTry = Just 1000000
 
 executeSubroutineWithModification :: A.Id -> [SubleqWord] -> ([SubleqWord], Set SubleqWord)
 executeSubroutineWithModification x args = case executeSubroutineWithStates x args maximumTry of
-                             Just (Just (res, end), (init:_)) ->  (res, changedAddresses end init)
+                             Just (Just (res, end), init:_) ->  (res, changedAddresses end init)
                              Just (Nothing, _) -> error "Not terminated"
                              Nothing -> error "Not found"
 
@@ -314,7 +314,7 @@ testLSb' target n lsvi subr rt rs frB = ([rt, rs, fr], fr'', [rt', rs', fr'], t,
       s = fromIntegral sa
       f = fromIntegral (fr * sa)
       sa = 1 `shift` n
-      fr = (frB `mod` (wordLength `div` sa))
+      fr = frB `mod` (wordLength `div` sa)
       fr'' = fr * (sa `div` 8)
       [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr'']
 
@@ -324,7 +324,7 @@ testSb n lsvi subr rt rs frB = fr' == fr'' && rs' == lsvi rs rt f s
       s = fromIntegral sa
       f = fromIntegral (fr * sa)
       sa = 1 `shift` n
-      fr = (frB `mod` (wordLength `div` sa))
+      fr = frB `mod` (wordLength `div` sa)
       fr'' = fr * (sa `div` 8)
       [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr'']
 
@@ -334,7 +334,7 @@ testLb n lsvi subr rt rs frB = fr' == fr'' && rt' == lsvi rt rs f s
       s = fromIntegral sa
       f = fromIntegral (fr * sa)
       sa = 1 `shift` n
-      fr = (frB `mod` (wordLength `div` sa))
+      fr = frB `mod` (wordLength `div` sa)
       fr'' = fr * (sa `div` 8)
       [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr'']
 
@@ -388,7 +388,7 @@ testLSbi n lsvi subr rt rs frB = fr' == fr && rt' == lsvi rt rs f s
 
 lvui :: LSvi
 -- svi rt rs f s = (rt Bit..&. complement (mask f s)) Bit..|. ((rs Bit..&. mask (wordLength - 1) s) `shift` (f - wordLength + 1))
-lvui rt rs f s = (rs Bit..&. (mask (f+s-1) s)) `shift` (-f)
+lvui rt rs f s = (rs Bit..&. mask (f+s-1) s) `shift` (-f)
 
 prop_Svi :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
 prop_Svi = testLSvi svi "sviTest"
@@ -426,7 +426,7 @@ prop_Addrh rd rt rs = [rs'] == [rs] && rt' == (rs Bit..&. 0x2) `shift` (-1) && r
       s = fromIntegral rs
       [rd', rt', rs'] = map fromIntegral $ executeSubroutine "addrhTest" $ map fromIntegral [rd, rt, rs]
 
-multD hi lo rs rt  = ([(iHi `shift` wordLength) + iLo, (iHi `shift` wordLength), iHi, iLo, iRs, iRt], (iHi `shift` wordLength) + iLo == iRs * iRt)
+multD hi lo rs rt  = ([(iHi `shift` wordLength) + iLo, iHi `shift` wordLength, iHi, iLo, iRs, iRt], (iHi `shift` wordLength) + iLo == iRs * iRt)
     where
       iHi, iLo, iRs, iRt :: Integer
       iLo = fromIntegral (fromIntegral lo' :: SubleqUWord)
@@ -451,7 +451,7 @@ printExecution (Just (Just (args, end), ss)) = status $$ history $$ result $$ in
 
 
 changedAddresses :: Fix2SubleqState -> Fix2SubleqState -> Set SubleqWord
-changedAddresses (_, mem) (_,init) = M.foldrWithKey (\k v a-> case v of { False -> a ; True -> S.insert k a } ) S.empty  $ M.mergeWithKey f g g mem init -- M.mergeWithKey (/=) mem init
+changedAddresses (_, mem) (_,init) = M.foldrWithKey (\k v a-> if v then S.insert k a else a) S.empty  $ M.mergeWithKey f g g mem init -- M.mergeWithKey (/=) mem init
     where
       f :: SubleqWord -> SubleqWord -> SubleqWord -> Maybe Bool
       f _ m1 m2 | m1 == m2 = Nothing
@@ -528,7 +528,7 @@ measureSbiType b sub n = do
                 case r' of
                   Nothing -> error $ mconcat [toString sub, " is non terminate with ", show (x,y)]
                   Just _ -> return ()
-                let res = T.measureInsns $ r'
+                let res = T.measureInsns r'
                 return (x, y, res)
 
 measureSvi = measureSviType "sviTest"
@@ -541,14 +541,14 @@ measureAddrbType sub n = do
                 case r' of
                   Nothing -> error $ mconcat [toString sub, " is non terminate with ", show x]
                   Just _ -> return ()
-                let res = T.measureInsns $ r'
+                let res = T.measureInsns r'
                 return (x, res)
 
 
 return []
 
 outputCsv :: CSV.ToRecord a => FilePath -> [BL.ByteString] -> [a] -> IO ()
-outputCsv path header f = BL.writeFile path =<< (return $ BL.concat [BL.intercalate "," header, "\n", CSV.encode f])
+outputCsv path header f = BL.writeFile path $ BL.concat [BL.intercalate "," header, "\n", CSV.encode f]
 
 showModule = A.renderLoadPackResult $ A.loadModulePacked subleqMA subleqMATextSection subleqModule subleqMAInitialMem
 
@@ -556,8 +556,9 @@ main :: IO ()
 main = do
     ok <- $quickCheckAll
     args <- getArgs
-    if not ok then putStrLn "Verification Failed!" else return ()
-    if args /= ["measure"] then return () else do
+    -- if not ok then putStrLn "Verification Failed!" else return ()
+    unless ok $ putStrLn "Verification Failed!"
+    when (args == ["measure"]) $ do
       let n = 10000
       putStrLn "Measure multu"
       outputCsv "measure-subleq-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n

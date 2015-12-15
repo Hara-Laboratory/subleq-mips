@@ -350,7 +350,7 @@ testSb n lsvi subr rt rs frB = fr' == fr'' && rs' == lsvi rs rt f s
       s = fromIntegral sa
       f = fromIntegral (fr * sa)
       sa = 1 `shift` n
-      fr = (frB `mod` (wordLength `div` sa))
+      fr = frB `mod` (wordLength `div` sa)
       fr'' = fr * (sa `div` 8)
       [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr'']
 
@@ -360,7 +360,7 @@ testLb n lsvi subr rt rs frB = fr' == fr'' && rt' == lsvi rt rs f s
       s = fromIntegral sa
       f = fromIntegral (fr * sa)
       sa = 1 `shift` n
-      fr = (frB `mod` (wordLength `div` sa))
+      fr = frB `mod` (wordLength `div` sa)
       fr'' = fr * (sa `div` 8)
       [rt', rs', fr'] = map fromIntegral $ executeSubroutine subr $ map fromIntegral [rt, rs, fr'']
 
@@ -407,7 +407,7 @@ prop_Svri = testLSvi svi "svriTest"
 
 lvui :: LSvi
 -- svi rt rs f s = (rt Bit..&. complement (mask f s)) Bit..|. ((rs Bit..&. mask (wordLength - 1) s) `shift` (f - wordLength + 1))
-lvui rt rs f s = (rs Bit..&. (mask (f+s-1) s)) `shift` (-f)
+lvui rt rs f s = (rs Bit..&. mask (f+s-1) s) `shift` (-f)
 
 prop_Lvui :: SubleqUWord -> SubleqUWord -> SubleqUWord -> SubleqUWord -> Bool
 prop_Lvui = testLSvi lvui "lvuiTest"
@@ -466,10 +466,10 @@ showFix2SubleqState :: Fix2SubleqState -> Doc
 showFix2SubleqState (pc, mem) = integer (fromIntegral pc) <> colon PP.<+> hsep registers PP.<+> colon PP.<+> hsep registersEx PP.<+> colon PP.<+> integer (memread 0x120 mem) PP.<+> colon PP.<+>  hsep (map integer [a,b,c,src1, src2])
     where
       memread a mem = fromIntegral $ Mem.read (fromIntegral a) mem
-      registers = (map (\a-> integer $ memread a mem) [0..15])
-      registersEx = (map (\a-> integer $ memread a mem) [16..31])
-      [a, b, c] = (map (\a-> memread a mem) [pc..(pc+2)])
-      [src1, src2] = (map (\a-> memread a mem) [a, b])
+      registers = map (\a-> integer $ memread a mem) [0..15]
+      registersEx = map (\a-> integer $ memread a mem) [16..31]
+      [a, b, c] = map (`memread` mem) [pc..(pc+2)]
+      [src1, src2] = map (`memread` mem) [a, b]
 
 type SubleqResult a w m = Maybe (Maybe ([w], SubleqState a w m), [SubleqState a w m])
 type Fix2SubleqResult = SubleqResult SubleqWord SubleqWord Fix2SubleqMemory
@@ -533,7 +533,7 @@ measureShiftType sub n = do
                 case r' of
                   Nothing -> error $ mconcat [toString sub, " is non terminate with ", show (x,y)]
                   Just _ -> return ()
-                let res = T.measureInsns $ r'
+                let res = T.measureInsns r'
                 return (x, y, res)
 
 measureSra n = do
@@ -570,7 +570,7 @@ measureSbiType b sub n = do
                 case r' of
                   Nothing -> error $ mconcat [toString sub, " is non terminate with ", show (x,y)]
                   Just _ -> return ()
-                let res = T.measureInsns $ r'
+                let res = T.measureInsns r'
                 return (x, y, res)
 
 measureSvi = measureSviType "sviTest"
@@ -587,11 +587,11 @@ measureAddrbType sub n = do
                 case r' of
                   Nothing -> error $ mconcat [toString sub, " is non terminate with ", show x]
                   Just _ -> return ()
-                let res = T.measureInsns $ r'
+                let res = T.measureInsns r'
                 return (x, res)
 
 outputCsv :: CSV.ToRecord a => FilePath -> [BL.ByteString] -> [a] -> IO ()
-outputCsv path header f = BL.writeFile path =<< (return $ BL.concat [BL.intercalate "," header, "\n", CSV.encode f])
+outputCsv path header f = BL.writeFile path $ BL.concat [BL.intercalate "," header, "\n", CSV.encode f]
 
 showModule = A.renderLoadPackResult $ A.loadModulePacked subleqMA subleqMATextSection subleqModule subleqMAInitialMem
 
@@ -599,9 +599,9 @@ main :: IO ()
 main = do
     ok <- $quickCheckAll
     args <- getArgs
-    putStrLn $ show args
-    if not ok then putStrLn "Verification Failed!" else return ()
-    if args /= ["measure"] then return () else do
+    print args
+    unless ok $ putStrLn "Verification Failed!"
+    when (args == ["measure"]) $ do
       let n = 10000
       -- putStrLn "Measure multu"
       outputCsv "measure-subleqr-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
