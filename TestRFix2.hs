@@ -114,10 +114,12 @@ subleqMAInitialMem =  foldr (<$) M.empty [ Mem.write 0xf wordLength
 subleqMATextSection :: Integer
 subleqMATextSection = 0x100
 
-executeSubroutineWithStates :: A.Id -> [SubleqWord] -> Maybe Integer -> Maybe (Maybe ([SubleqWord], Fix2SubleqState), [Fix2SubleqState])
-executeSubroutineWithStates x args mn = T.executeSubroutineWithStates Subleq.step pos mem x args mn
+subleqProg = (Subleq.step, pos, mem)
     where
       (pos, mem) = T.assembleMachine subleqMA subleqMATextSection subleqModule subleqMAInitialMem
+
+executeSubroutineWithStates :: A.Id -> [SubleqWord] -> Maybe Integer -> Maybe (Maybe ([SubleqWord], Fix2SubleqState), [Fix2SubleqState])
+executeSubroutineWithStates = T.executeSubroutineWithStates subleqProg
 
 maximumTry :: Maybe Integer
 -- maximumTry = Just 1000000
@@ -633,7 +635,7 @@ main = do
       measureTest measureAddrbType "addrb" ["arg1","insns"] n
       measureTest measureAddrbType "addrh" ["arg1","insns"] n
     case args of
-      ("read-trace":fs) -> forM_ fs readTraceFromFile
+      ("read-trace":fs) -> forM_ fs $ T.readTraceFromFile subleqProg
       _ -> return ()
   where
     arch = "subleqr"
@@ -642,40 +644,3 @@ main = do
       outputCsv (mconcat ["measure-", arch, "-", name, ".csv"]) cols =<< func n
     measureTest ty name = measure name (ty $ name `mappend` "Test")
     measureType suf ty name = measure name (ty $ name `mappend` suf)
-
-readTraceFromFile :: FilePath -> IO ()
-readTraceFromFile filename = do
-    let outputfilename = FP.replaceBaseName filename ("measure-subleqr-" ++ FP.takeBaseName filename)
-    f <- BL.readFile filename
-    either (\x -> return ()) id $ (BL.writeFile outputfilename) . CSV.encode . M.toList <$> readTrace f
-
-data SubleqArguments = LoadStore SubleqWord SubleqWord SubleqWord
-    deriving (Show, Read, Eq, Ord)
-
-parseTrace :: BL.ByteString -> Either String (Vector (String, SubleqArguments))
-parseTrace = fmap (V.map conv) . CSV.decode CSV.NoHeader
-    where
-      conv (insn, offset, src1, src2, res_lw) = (insn, LoadStore (Prelude.read offset + Prelude.read src1) (Prelude.read src2) (Prelude.read res_lw))
-
-
-traceExecute :: [(String, SubleqArguments)] -> [(String, Integer)]
-traceExecute = map (\(insn, args) -> (insn, f insn args))
-
-f :: String -> SubleqArguments -> Integer
-f insn args = load (ncycle insn) args
-load (addrRoutine, liRoutine, posF) (LoadStore addr rd mval) = 12 + measureAddr addrRoutine addr + nLwSub1 + measureLoad liRoutine (posF addr) mval rd
-measureAddr sub addr = T.measureInsns $ executeSubroutineWithStates (sub ++ "Test") [0,0,addr] (Just 100)
-measureLoad sub pos mval rd = T.measureInsns $ executeSubroutineWithStates (sub ++ "Test") [rd,mval,pos] (Just 100)
-nLwSub1 = 6
-nSwSub1 = 10
-ncycle :: (Num a, Bits a, Integral a) => String -> (String, String, a -> a)
-ncycle "lbu" = ("addrb", "lbui", \ n -> n `mod` 4)
-ncycle "lb"  = ("addrb", "lbui", \ n -> n `mod` 4)
-ncycle "sb"  = ("addrb", "sbi",  \ n -> n `mod` 4)
-ncycle "lhu" = ("addrh", "lhui", \ n -> (n `mod` 4) `shift` (-1))
-ncycle "lh"  = ("addrh", "lhui", \ n -> (n `mod` 4) `shift` (-1))
-ncycle "sh"  = ("addrh", "shi",  \ n -> (n `mod` 4) `shift` (-1))
-
-readTrace :: BL.ByteString -> Either String (Map String Integer)
-readTrace trace = M.fromListWith (+) . traceExecute . V.toList <$> parseTrace trace
-
