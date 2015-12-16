@@ -87,6 +87,17 @@ exec step mem args Nothing pc = (Just s, ss)
 
 type SubleqResult a w m = Maybe (Maybe ([w], SubleqState a w m), [SubleqState a w m])
 
+measureExecutedInsns :: (Memory w w m, Num w, Enum w, Show w) =>  SubleqProgram w m -> A.Id -> [w] -> Maybe Integer -> Integer
+measureExecutedInsns prog x args mn = g $ executeSubroutineWithStates prog x args mn
+  where
+    g :: SubleqResult a w m -> Integer
+    g (Just (Just _, ss)) = fromIntegral $ length ss - 1
+    g (Just (Nothing, ss)) = fromIntegral $ length ss - 1
+    g Nothing = error $ unlines [ "Invalid result. Maybe non-terminate."
+                                , "Insn Limitation: " ++ show mn
+                                , x ++ "(" ++ unwords (map show args) ++ ")"
+                                ]
+
 measureInsns :: SubleqResult a w m -> Integer
 measureInsns (Just (Just _, ss)) = fromIntegral $ length ss - 1
 measureInsns (Just (Nothing, ss)) = fromIntegral $ length ss - 1
@@ -100,33 +111,70 @@ res :: (Integral a)=>a -> Int -> IO [Double]
 -- res :: (Distribution Uniform b, MonadRandom f, Functor f, Floating b) => Int -> f [b]
 res m n = map (2 **) <$> ( replicateM n . R.sample $ uniformTo m)
 
-readTraceFromFile :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m)=>SubleqProgram w m -> FilePath -> IO ()
+readTraceFromFile :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> FilePath -> IO ()
 readTraceFromFile prog filename = do
     let outputfilename = FP.replaceBaseName filename ("measure-subleq-" ++ FP.takeBaseName filename)
     f <- BL.readFile filename
     either (\x -> return ()) id $ BL.writeFile outputfilename . CSV.encode . M.toList <$> readTrace prog f
 
-data SubleqArguments w = LoadStore w w w
-    deriving (Show, Read, Eq, Ord)
+-- data SubleqArguments w = LoadStore w w w
+--    deriving (Show, Read, Eq, Ord)
+type SubleqArguments w = (w, w, w, w)
 
 parseTrace :: (Num w, Enum w, Read w)=>BL.ByteString -> Either String (Vector (String, SubleqArguments w))
 parseTrace = fmap (V.map conv) . CSV.decode CSV.NoHeader
     where
-      conv (insn, offset, src1, src2, res_lw) = (insn, LoadStore (Prelude.read offset + Prelude.read src1) (Prelude.read src2) (Prelude.read res_lw))
+      conv (insn, offset, src1, src2, res_lw) = (insn, (Prelude.read offset, Prelude.read src1, Prelude.read src2, Prelude.read res_lw))
 
 
-traceExecute :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m)=>SubleqProgram w m -> [(String, SubleqArguments w)] -> [(String, Integer)]
+traceExecute :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> [(String, SubleqArguments w)] -> [(String, Integer)]
 traceExecute prog = map (\(insn, args) -> (insn, f prog insn args))
 
-f :: (Integral w, Bits w, Memory w w m)=>SubleqProgram w m -> String -> SubleqArguments w -> Integer
-f prog insn args | insn `elem` ["lbu", "lb" , "sb" , "lhu", "lh" , "sh"] = load prog (ncycle insn) args
-f prog "lw" args = 6
+f :: (Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> String -> SubleqArguments w -> Integer
+f prog insn args | insn `elem` ["sb", "sh"] = load prog (ncycle insn) args + nSwSub1
+                 | insn `elem` ["lbu", "lb" , "lhu", "lh"] = load prog (ncycle insn) args
+f prog insn (_, rt, sa, ans) | insn `elem` ["sll", "srl", "sra"] = measureShift prog insn rt sa ans
+f prog "mfxx" _ = 4
+f prog "addu" _ = 5
+f prog "subu" _ = 7 -- FIX
+f prog insn (_, a, b, ans) | insn `elem` ["and", "or", "xor", "nor"] = measureArith prog insn a b ans
+f prog insn (_, a, b, ans) | insn `elem` ["mult"] = measureArith prog "multu" a b ans
+-- f prog "lw" [] = measureAddr prog "addrw" + nLwSub1
+f prog "lw" _  = 1 -- FIX
+f prog "sw" _  = 1 -- FIX
+
+f prog "lui" _  = 1 -- FIX
+f prog "jr" _   = 1 -- FIX
+f prog "j" _    = 1 -- FIX
+f prog "jal" _    = 1 -- FIX
+
+f prog "slt" _  = 1 -- FIX
+f prog "sltu" _   = 1 -- FIX
+f prog "slti" _    = 1 -- FIX
+f prog "sltiu" _    = 1 -- FIX
+
+f prog "bne" _    = 1 -- FIX
+f prog "beq" _    = 1 -- FIX
+f prog "bltz" _    = 1 -- FIX
+f prog "bgez" _    = 1 -- FIX
+f prog "beqz" _    = 1 -- FIX
+f prog "blez" _    = 1 -- FIX
+f prog "bgtz" _    = 1 -- FIX
+
+f prog insn args    = error $ "unrecognized instruction: " ++ insn ++ " " ++ show args
+
 
 -- traceExecute :: (Num w, Enum w, Read w, Memory w w m)=>[(String, SubleqArguments w)] -> [(String, Integer)]
-load prog (addrRoutine, liRoutine, posF) (LoadStore addr rd mval) = 12 + measureAddr prog addrRoutine addr + nLwSub1 + measureLoad prog liRoutine (posF addr) mval rd
+load prog (addrRoutine, liRoutine, posF) (off, addr, rd, mval) = measureAddr prog addrRoutine addr' + nLwSub1 + measureLoad prog liRoutine (posF addr') mval rd
+    where
+      addr' = off + addr
 
-measureAddr prog sub addr = measureInsns $ executeSubroutineWithStates prog (sub ++ "Test") [0,0,addr] Nothing
-measureLoad prog sub pos mval rd = measureInsns $ executeSubroutineWithStates prog (sub ++ "Test") [rd,mval,pos] Nothing
+measureArith prog sub a b ans = measureExecutedInsns prog sub [0,a,b] Nothing
+measureShift prog sub val sa ans = measureExecutedInsns prog sub [0,val,sa] Nothing
+
+measureAddr prog sub addr = measureExecutedInsns prog (sub ++ "Test") [0,0,addr] Nothing
+measureLoad prog sub pos mval rd = measureExecutedInsns prog (sub ++ "Test") [rd,mval,pos] Nothing
+
 nLwSub1 = 6
 nSwSub1 = 10
 ncycle :: (Num a, Bits a, Integral a) => String -> (String, String, a -> a)
@@ -137,6 +185,6 @@ ncycle "lhu" = ("addrh", "lhui", \ n -> (n `mod` 4) `shift` (-1))
 ncycle "lh"  = ("addrh", "lhui", \ n -> (n `mod` 4) `shift` (-1))
 ncycle "sh"  = ("addrh", "shi",  \ n -> (n `mod` 4) `shift` (-1))
 
-readTrace :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m)=>SubleqProgram w m -> BL.ByteString -> Either String (Map String Integer)
+readTrace :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> BL.ByteString -> Either String (Map String Integer)
 readTrace prog trace = M.fromListWith (+) . traceExecute prog . V.toList <$> parseTrace trace
 
