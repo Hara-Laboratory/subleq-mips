@@ -140,40 +140,47 @@ f prog "subu" _ = 7 -- FIX
 f prog insn (_, a, b, ans) | insn `elem` ["and", "or", "xor", "nor"] = measureArith prog insn a b ans
 f prog insn (_, a, b, ans) | insn `elem` ["mult"] = measureArith prog "multu" a b ans
 -- f prog "lw" [] = measureAddr prog "addrw" + nLwSub1
-f prog "lw" _  = 1 -- FIX
-f prog "sw" _  = 1 -- FIX
+f prog "lw" _  = nLwSub1 -- In case of IDEAL situation: without addres conversion.
+f prog "sw" _  = nSwSub1 -- In case of IDEAL situation
 
-f prog "lui" _  = 1 -- FIX
-f prog "jr" _   = 1 -- FIX
-f prog "j" _    = 1 -- FIX
-f prog "jal" _    = 1 -- FIX
+f prog "lui" (_, r,_, _)  = measureMonadic prog "lui" r
+f prog "j" _    = 1
+f prog "jal" _  = 3
+f prog "jr" _   = 4
 
-f prog "slt" _  = 1 -- FIX
-f prog "sltu" _   = 1 -- FIX
-f prog "slti" _    = 1 -- FIX
-f prog "sltiu" _    = 1 -- FIX
+f prog "slt"   (_, rs, rt, ans)  = measureArith prog "slt" rs rt ans
+f prog "sltu"  (_, rs, rt, ans)  = measureArith prog "sltu" rs rt ans
+f prog "slti"  (_, rs, rt, ans)  = measureArith prog "slt" rs rt ans
+f prog "sltiu" (_, rs, rt, ans)  = measureArith prog "sltu" rs rt ans
 
-f prog "bne" _    = 1 -- FIX
-f prog "beq" _    = 1 -- FIX
-f prog "bltz" _    = 1 -- FIX
-f prog "bgez" _    = 1 -- FIX
-f prog "beqz" _    = 1 -- FIX
-f prog "blez" _    = 1 -- FIX
-f prog "bgtz" _    = 1 -- FIX
+f prog insn (_, rs, rt, _) | insn `elem` ["bne", "beq"] = 2 + nJnzp (rs - rt) -- In case of IDEAL situation: Reordered instructions
+
+f prog insn (_, r, _, _) | insn `elem` ["bltz", "bgez", "beqz", "blez", "bgtz"] = nJnzp r
 
 f prog insn args    = error $ "unrecognized instruction: " ++ insn ++ " " ++ show args
 
 
 -- traceExecute :: (Num w, Enum w, Read w, Memory w w m)=>[(String, SubleqArguments w)] -> [(String, Integer)]
-load prog (addrRoutine, liRoutine, posF) (off, addr, rd, mval) = measureAddr prog addrRoutine addr' + nLwSub1 + measureLoad prog liRoutine (posF addr') mval rd
+load prog (addrRoutine, liRoutine, posF) (off, addr, rd, mval) = addrConv + nLwSub1 + valConv
     where
       addr' = off + addr
+      --addrConv = measureAddr prog addrRoutine addr'
+      addrConv = measureAddr prog addrRoutine addr'
+      valConv = measureLoad prog liRoutine (posF addr') mval rd
+
+measureMonadic prog sub a = measureExecutedInsns prog sub [0,a] Nothing
 
 measureArith prog sub a b ans = measureExecutedInsns prog sub [0,a,b] Nothing
 measureShift prog sub val sa ans = measureExecutedInsns prog sub [0,val,sa] Nothing
 
 measureAddr prog sub addr = measureExecutedInsns prog (sub ++ "Test") [0,0,addr] Nothing
 measureLoad prog sub pos mval rd = measureExecutedInsns prog (sub ++ "Test") [rd,mval,pos] Nothing
+
+nJnzp n = g (n `compare` 0)
+    where
+      g LT = 3
+      g EQ = 3
+      g GT = 2
 
 nLwSub1 = 6
 nSwSub1 = 10
@@ -185,6 +192,6 @@ ncycle "lhu" = ("addrh", "lhui", \ n -> (n `mod` 4) `shift` (-1))
 ncycle "lh"  = ("addrh", "lhui", \ n -> (n `mod` 4) `shift` (-1))
 ncycle "sh"  = ("addrh", "shi",  \ n -> (n `mod` 4) `shift` (-1))
 
-readTrace :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> BL.ByteString -> Either String (Map String Integer)
-readTrace prog trace = M.fromListWith (+) . traceExecute prog . V.toList <$> parseTrace trace
+readTrace :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> BL.ByteString -> Either String (Map String (Integer, Integer))
+readTrace prog trace = M.fromListWith (\(a1, b1) (a2, b2) -> (a1 + a2, b1 + b2)) . map (\(n, x) -> (n, (1, x))) . traceExecute prog . V.toList <$> parseTrace trace
 
