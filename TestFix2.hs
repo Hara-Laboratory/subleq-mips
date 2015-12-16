@@ -579,7 +579,7 @@ main = do
       measureTest measureAddrbType "addrb" ["arg1","insns"] n
       measureTest measureAddrbType "addrh" ["arg1","insns"] n
     case args of
-      ("read-trace":fs) -> forM_ fs $ T.readTraceFromFile subleqProg
+      ("read-trace":fs) -> forM_ fs $ T.readTraceFromFile "measure-subleq-" subleqProg
       _ -> return ()
   where
     arch = "subleq"

@@ -111,11 +111,11 @@ res :: (Integral a)=>a -> Int -> IO [Double]
 -- res :: (Distribution Uniform b, MonadRandom f, Functor f, Floating b) => Int -> f [b]
 res m n = map (2 **) <$> ( replicateM n . R.sample $ uniformTo m)
 
-readTraceFromFile :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> FilePath -> IO ()
-readTraceFromFile prog filename = do
-    let outputfilename = FP.replaceBaseName filename ("measure-subleq-" ++ FP.takeBaseName filename)
+readTraceFromFile :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>String -> SubleqProgram w m -> FilePath -> IO ()
+readTraceFromFile prefix prog filename = do
+    let outputfilename = FP.replaceBaseName filename (prefix ++ FP.takeBaseName filename)
     f <- BL.readFile filename
-    either (\x -> return ()) id $ BL.writeFile outputfilename . CSV.encode . M.toList <$> readTrace prog f
+    either (\x -> return ()) id $ BL.writeFile outputfilename . CSV.encode . map (\(a, (b, c)) -> (a, b, c)) . M.toList <$> readTrace prog f
 
 -- data SubleqArguments w = LoadStore w w w
 --    deriving (Show, Read, Eq, Ord)
