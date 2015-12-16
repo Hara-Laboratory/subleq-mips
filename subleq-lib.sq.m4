@@ -611,20 +611,21 @@ dnl 	fin:
 dnl 	return out;
 dnl }
 dnl f: jump to LBody if the loop condition holds, otherwise next or jump to LFinish, able to use S1.
+
 define(`DestructiveBitwiseR',`
 ifelse(ARCH,`subleqr',`
 @@$1 Rd, Rs, Rt, S0, S1, Aend
 Rd; Inc S0;
 L1:Inc Rd;
-L0:$6;
-dnl L0:$($6 Rs, Rt, LBody, LFinish);
+dnl L0:$6;
+L0:$($6 Rs, Rt, LBody, LFinish);
 LFinish:S0; S1 S1 Aend;
 LBody:$(@@sl1m Rd, LBody2);
 LBody2:$(@@sl1cj Rs, Ls0, Ls1);
 Ls0:$(@@sl1cj Rt, L$2, L$3);
 Ls1:$(@@sl1cj Rt, L$4, L$5);
-@@$1 Rd, Rs, Rt, S0, S1, Aend
-$(@@$1O Rd, Rs, Rt, S0, S1, Aend);
+dnl @@$1 Rd, Rs, Rt, S0, S1, Aend
+dnl $(@@$1O Rs, Rt, , S0, S1, Aend);
 ')
 ')
 
@@ -634,9 +635,16 @@ DestructiveBitwise(`orDSub',`0',`1',`1',`1')
 DestructiveBitwise(`xorDSub',`0',`1',`1',`0')
 DestructiveBitwise(`norDSub',`1',`0',`0',`0')
 
-dnl DestructiveBitwiseR(`andDRSub',`0',`0',`0',`1',`$(@@jznz Rs, LFinish, F1); F1:$(@@jznz Rt, LFinish, FBody)')
-dnl DestructiveBitwiseR(`orDRSub',`0',`0',`0',`1',`$(@@jznz Rs, F1, LBody); F1:$(@@jznz Rt, LFinish, FBody)')
-dnl DestructiveBitwiseR(`xorDRSub',`0',`0',`0',`1',`$(@@jznz Rs, F1, LBody); F1:$(@@jznz Rt, LFinish, FBody)')
+@@addRfinish A, B, Cont, Fin
+$(@@jznz Rs, Fin, F1); F1:$(@@jznz Rt, Fin, Cont);
+
+@@orRfinish A, B, Cont, Fin
+$(@@jznz Rs, F1, Cont); F1:$(@@jznz Rt, Fin, Cont);
+
+DestructiveBitwiseR(`andDRSub',`0',`0',`0',`1',`@@addRfinish')
+DestructiveBitwiseR(`orDRSub',`0',`1',`1',`1',`@@orRfinish')
+DestructiveBitwiseR(`xorDRSub',`0',`1',`1',`0',`@@orRfinish') dnl it is better to use xorRfinish
+DestructiveBitwise(`norDRSub',`1',`0',`0',`0')
 
 @@lwSub1 Rt, MAddr, Aend // Rt <- mem[-MAddr]
 MAddr X;
