@@ -545,6 +545,19 @@ measureAddrbType sub n = do
                 let res = T.measureInsns r'
                 return (x, res)
 
+measureBinaryWithP sub n = do
+    xs <- map floor <$> res n
+    xs' <- map (T.bitReversal . floor) <$> res n
+    ys <- map floor <$> res n
+    ys' <- map (T.bitReversal . floor) <$> res n
+    let xys = zip (xs ++ xs') (ys ++ ys')
+    return $ do (x, y) <- xys
+                let res = T.measureInsns $ executeSubroutineWithStates sub [0,x,y] maximumTry
+                let ux = fromIntegral x :: SubleqUWord
+                let uy = fromIntegral y :: SubleqUWord
+                let pux = logBase 2 $ fromIntegral ux :: Double
+                let puy = logBase 2 $ fromIntegral uy :: Double
+                return (ux, uy, pux, puy, res)
 
 return []
 
@@ -553,13 +566,8 @@ outputCsv path header f = BL.writeFile path $ BL.concat [BL.intercalate "," head
 
 showModule = A.renderLoadPackResult $ A.loadModulePacked subleqMA subleqMATextSection subleqModule subleqMAInitialMem
 
-main :: IO ()
-main = do
-    ok <- $quickCheckAll
-    args <- getArgs
-    -- if not ok then putStrLn "Verification Failed!" else return ()
-    unless ok $ putStrLn "Verification Failed!"
-    when (args == ["measure"]) $ do
+measureInstructions :: IO ()
+measureInstructions = do
       let n = 10000
       putStrLn "Measure multu"
       outputCsv "measure-subleq-multu.csv" ["arg1","arg2","parg1","parg2","insns"] =<< measureMultu n
@@ -567,6 +575,10 @@ main = do
       outputCsv "measure-subleq-sra.csv" ["arg1","arg2","insns"] =<< measureSra n
       putStrLn "Measure srl"
       outputCsv "measure-subleq-srl.csv" ["arg1","arg2","insns"] =<< measureSrl n
+      measureType "" measureBinaryWithP "and"  ["arg1","arg2","parg1","parg2","insns"] n
+      measureType "" measureBinaryWithP "or"  ["arg1","arg2","parg1","parg2","insns"] n
+      measureType "" measureBinaryWithP "xor"  ["arg1","arg2","parg1","parg2","insns"] n
+      measureType "" measureBinaryWithP "nor"  ["arg1","arg2","parg1","parg2","insns"] n
       measureType "" measureShiftType "sll" ["arg1","arg2","insns"] n
       measureType "" measureShiftType "srl" ["arg1","arg2","insns"] n
       measureType "" measureShiftType "sra" ["arg1","arg2","insns"] n
@@ -578,9 +590,6 @@ main = do
       measureTest (measureSbiType 4) "lhui"  ["arg1","arg2","insns"] n
       measureTest measureAddrbType "addrb" ["arg1","insns"] n
       measureTest measureAddrbType "addrh" ["arg1","insns"] n
-    case args of
-      ("read-trace":fs) -> forM_ fs $ T.readTraceFromFile "measure-subleq-" subleqProg
-      _ -> return ()
   where
     arch = "subleq"
     measure name func cols n = do
@@ -588,3 +597,15 @@ main = do
       outputCsv (mconcat ["measure-", arch, "-", name, ".csv"]) cols =<< func n
     measureTest ty name = measure name (ty $ name `mappend` "Test")
     measureType suf ty name = measure name (ty $ name `mappend` suf)
+
+main :: IO ()
+main = do
+    ok <- $quickCheckAll
+    args <- getArgs
+    -- if not ok then putStrLn "Verification Failed!" else return ()
+    unless ok $ putStrLn "Verification Failed!"
+    case args of
+      ["measure"] -> measureInstructions
+      ("read-trace":fs) -> forM_ fs $ T.readTraceFromFile "measure-subleq-" subleqProg
+      ("read-traces":fs) -> T.readTraceFromFiles "measure-subleq.csv" subleqProg fs
+      _ -> error $ "Unknown options: " ++ show args

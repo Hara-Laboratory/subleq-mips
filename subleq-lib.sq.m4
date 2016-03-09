@@ -120,6 +120,15 @@ LFinish2:S1 S1 Aend;
 
 define(`subroutine_per_size',`
 @@$1 Rd, Rt, Sa, $5, Aend
+LStart:Rd; Sa Rd; Threshold Rd LBig;
+$(@@$2 Rd, Rt, Sa, $5, Aend);
+LBig:$(@@$3 Rd, Rt, Sa, $5, Aend);
+LFinish:Rd Rd Aend;
+Threshold:(- $4);
+')
+
+define(`subroutine_per_size_with_zero_check',`
+@@$1 Rd, Rt, Sa, $5, Aend
 $(@@jnzp Rt, LStart, LFinish, LStart);
 LStart:Rd; Sa Rd; Threshold Rd LBig;
 $(@@$2 Rd, Rt, Sa, $5, Aend);
@@ -129,16 +138,16 @@ Threshold:(- $4);
 ')
 
 ifelse(ARCH,`subleqr',`
-subroutine_per_size(`sllsub', `sllsubO', `sllsubBig', `22', `S1, S2')
-subroutine_per_size(`srlsub', `srlsub1', `srlsubO', `21', `S1, S2')
-subroutine_per_size(`srasub', `srasub1', `srasubO', `20', `S1, S2, S3')
+subroutine_per_size_with_zero_check(`sllsub', `sllsubO', `sllsubBig', `22', `S1, S2')
+subroutine_per_size_with_zero_check(`srlsub', `srlsub1', `srlsubO', `21', `S1, S2')
+subroutine_per_size_with_zero_check(`srasub', `srasub1', `srasubO', `20', `S1, S2, S3')
 
-subroutine_per_size(`slli3sub', `slli3subO', `slli3subBig', `10', `S1, S2')
-subroutine_per_size(`slli4sub', `slli4subO', `slli4subBig', `10', `S1, S2')
-subroutine_per_size(`srli3sub', `srli3sub1', `srli3subO', `21', `S1, S2')
-subroutine_per_size(`srli4sub', `srli4sub1', `srli4subO', `21', `S1, S2')
-subroutine_per_size(`srai3sub', `srai3sub1', `srai3subO', `20', `S1, S2, S3')
-subroutine_per_size(`srai4sub', `srai4sub1', `srai4subO', `20', `S1, S2, S3')
+subroutine_per_size_with_zero_check(`slli3sub', `slli3subO', `slli3subBig', `10', `S1, S2')
+subroutine_per_size_with_zero_check(`slli4sub', `slli4subO', `slli4subBig', `10', `S1, S2')
+subroutine_per_size_with_zero_check(`srli3sub', `srli3sub1', `srli3subO', `21', `S1, S2')
+subroutine_per_size_with_zero_check(`srli4sub', `srli4sub1', `srli4subO', `21', `S1, S2')
+subroutine_per_size_with_zero_check(`srai3sub', `srai3sub1', `srai3subO', `20', `S1, S2, S3')
+subroutine_per_size_with_zero_check(`srai4sub', `srai4sub1', `srai4subO', `20', `S1, S2, S3')
 
 @@sllsubBig Rd, Rt, Sa, S0, S1, Aend
 Rt S1; Rd;
@@ -416,6 +425,14 @@ Lzn:Inc Al Ln; Dec Al Lp;
 Ln:Dec Al; $(@@sl1m Al, Ao);
 
 ifelse(ARCH,`subleqr',`
+@@srl1cj Al, Ae, Ao // {Al, Ad} <- {1%b0, Al, (w-1)%d0} ; if Ad == 1 then jump Ao else jump Ao ; alias ok
+Z Al (- Lzo);
+Le:$(@@srl1m Al, Ae);
+Lzo:Inc Al Lo; Dec Al Le;
+Lo:Dec Al; $(@@srl1m Al, Ao);
+')
+
+ifelse(ARCH,`subleqr',`
 @@srl1 Ad, As, Aend // {Ad, 1%_} <- {1%b0, As} ; alias ok
 As Z (- L2); L2:Ad; Z Ad (- L4); L4:Z Ad (- L5); L5:Z Z Aend;
 
@@ -445,7 +462,23 @@ As Z; Ad; Z Ad; Z Ad; Z Z Aend;
 @@sl1m A, Aend // {1%d_, A} <- {A, 1%d0} ; alias ok ; end ok
 A Z; Z A; Z Z Aend;
 
-@@jnzp A, An, Az, Ap // goto An if A < 0, Az if A = 0, Ap if A > 0
+@@sl2m A, Aend // {2%d_, A} <- {A, 2%d0}
+Body0:$(@@sl1m A, Body1);
+Body1:$(@@sl1m A, Aend);
+
+@@sl4m A, Aend // {4%d_, A} <- {A, 4%d0}
+Body0:$(@@sl2m A, Body1);
+Body1:$(@@sl2m A, Aend);
+
+@@sl8m A, Aend // {8%d_, A} <- {A, 8%d0}
+Body0:$(@@sl4m A, Body1);
+Body1:$(@@sl4m A, Aend);
+
+@@sl16m A, Aend // {16%d_, A} <- {A, 16%d0}
+Body0:$(@@sl8m A, Body1);
+Body1:$(@@sl8m A, Aend);
+
+@@jnzp A, An, Az, Ap // goto An if A < 0 (3 insns), Az if A = 0 (3 insns), Ap if A > 0 (2 insns)
 Z A Lzn; Z Z Ap;
 Lzn:Inc A Ln; Dec A Az;
 Ln:Dec A An;
@@ -519,7 +552,7 @@ $(@@addc Hi, Lo, Rt, T2, Loop);
 ifelse(ARCH,`subleqr',`
 @@multuSub Hi, Lo, Rs, Rt, TRth, T2, Ts, Tt, End
 Hi; Lo; Rs Ts; Rt Tt;
-// $(@@exch Rs, Rt, Ts, Tt, Loop); // for exchange
+$(@@exch Rs, Rt, Ts, Tt, Loop); // for exchange
 Loop:$(@@jezo Rs, LBodyE, LFinish, LBodyO);
 LFinish:Ts Rs; Ts; Rt; Tt Rt; TRth; Tt Tt End;
 LBodyO:$(@@addc Hi, Lo, Rt, T2, LBodyO1);
@@ -577,7 +610,7 @@ A Z; Z T; Ad; T Ad; T;
 Dec Ad; Z Z Aend;
 
 define(`DestructiveBitwise',`
-PureSubleq(`@@$1') Rd, Rs, Rt, S0, S1, Aend
+@@$1 Rd, Rs, Rt, S0, S1, Aend
 Rd; Dec Rd;
 CW S0;
 L1:Inc Rd;
@@ -587,15 +620,11 @@ LBody:$(@@sl1m Rd, LBody2);
 LBody2:$(@@sl1cj Rs, Ls0, Ls1);
 Ls0:$(@@sl1cj Rt, L$2, L$3);
 Ls1:$(@@sl1cj Rt, L$4, L$5);
-ifelse(ARCH,`subleqr',`
-@@$1 Rd, Rs, Rt, S0, S1, Aend
-$(@@$1O Rd, Rs, Rt, S0, S1, Aend);
-')
 ')
 
 dnl destructiveBitwiseR(int a, int b, bool c[4], bool (*f)(int, int, void*, void*)) {
 dnl 	int out = 0;
-dnl 	int p = 1; // S0
+dnl 	int p = -1; // S0
 dnl 	while (f(a, b, cont, fin), goto fin, cont:) {
 dnl 		
 dnl 		int a0 = a & 1;
@@ -603,7 +632,7 @@ dnl 		a >>= 1;
 dnl 		int b0 = b & 1;
 dnl 		b >>= 1;
 dnl 		if (c[a * 2 + b]) {
-dnl 			out += p;
+dnl 			out -= p;
 dnl 		}
 dnl 		p <<= 1;
 dnl 	}
@@ -615,36 +644,131 @@ dnl f: jump to LBody if the loop condition holds, otherwise next or jump to LFin
 define(`DestructiveBitwiseR',`
 ifelse(ARCH,`subleqr',`
 @@$1 Rd, Rs, Rt, S0, S1, Aend
-Rd; Inc S0;
-L1:Inc Rd;
+Rd; Dec S0 LC;
+L1:S0 Rd;
 dnl L0:$6;
-L0:$($6 Rs, Rt, LBody, LFinish);
+L0:$(@@sl1m S0, LC);
+LC:$($6 Rs, Rt, LBody, LFinish);
 LFinish:S0; S1 S1 Aend;
-LBody:$(@@sl1m Rd, LBody2);
-LBody2:$(@@sl1cj Rs, Ls0, Ls1);
-Ls0:$(@@sl1cj Rt, L$2, L$3);
-Ls1:$(@@sl1cj Rt, L$4, L$5);
+LBody:$(@@srl1cj Rs, Ls0, Ls1);
+Ls0:$(@@srl1cj Rt, L$2, L$3);
+Ls1:$(@@srl1cj Rt, L$4, L$5);
 dnl @@$1 Rd, Rs, Rt, S0, S1, Aend
 dnl $(@@$1O Rs, Rt, , S0, S1, Aend);
 ')
 ')
 
+dnl destructiveBitwiseL(int a, int b, bool c[4], bool (*f)(int, int, void*, void*)) {
+dnl 	int out = 0;
+dnl 	int p = rev(1); // S0
+dnl 	while (f(a, b, cont, fin), goto fin, cont:) {
+dnl 		
+dnl 		int a0 = rev(a) & 1;
+dnl 		a <<= 1;
+dnl 		int b0 = rev(b) & 1;
+dnl 		b <<= 1;
+dnl 		if (c[a * 2 + b]) {
+dnl 			out += p;
+dnl 		}
+dnl 		p >>= 1;
+dnl 	}
+dnl 	fin:
+dnl 	return out;
+dnl }
+dnl f: jump to LBody if the loop condition holds, otherwise next or jump to LFinish, able to use S1.
 
+define(`DestructiveBitwiseL',`
+ifelse(ARCH,`subleqr',`
+@@$1 Ad, As, At, S0, S1, Aend
+Ad; RDec S0 (- LC);
+L1:S0 Ad (- L0);
+dnl L0:$6;
+L0:$(@@srl1m S0, LC);
+LC:$($6 As, At, LBody, LFinish);
+LFinish:S0; S1 S1 Aend;
+LBody:$(@@sl1cj As, Ls0, Ls1);
+Ls0:$(@@sl1cj At, L$2, L$3);
+Ls1:$(@@sl1cj At, L$4, L$5);
+dnl @@$1 Ad, As, At, S0, S1, Aend
+dnl $(@@$1O As, At, , S0, S1, Aend);
+')
+')
+
+define(`subroutine_per_size_and',`
+@@$1 Ad, At, As, $5, Aend
+LStart:Ad; As Ad; Threshold Ad LBig;
+LSmall:$(@@$2 Ad, At, As, $5, Aend);
+LBig:Ad; Threshold Ad; At Ad LSmall;
+$(@@$3 Ad, At, As, $5, Aend);
+LFinish:Ad Ad Aend;
+Threshold:(- $4);
+')
+
+define(`subroutine_per_size_or',`
+@@$1 Ad, At, As, $5, Aend
+LStart:Ad; As Ad; Threshold Ad LBig;
+LSmall:Ad; At Ad; Threshold Ad LBig;
+$(@@$2 Ad, At, As, $5, Aend);
+LBig:$(@@$3 Ad, At, As, $5, Aend);
+LFinish:Ad Ad Aend;
+Threshold:(- $4);
+')
+
+
+ifelse(ARCH,`subleq',`
 DestructiveBitwise(`andDSub',`0',`0',`0',`1')
 DestructiveBitwise(`orDSub',`0',`1',`1',`1')
 DestructiveBitwise(`xorDSub',`0',`1',`1',`0')
 DestructiveBitwise(`norDSub',`1',`0',`0',`0')
+',ARCH,`subleqr',`
+dnl subroutine_per_size_and(`andDSub', `andDRSub', `andDLSub', `65536', `S1, S2')
+DestructiveBitwise(`andDSubO',`0',`0',`0',`1')
+DestructiveBitwise(`orDSubO',`0',`1',`1',`1')
+DestructiveBitwise(`xorDSubO',`0',`1',`1',`0')
+DestructiveBitwise(`norDSubO',`1',`0',`0',`0')
+dnl subroutine_per_size_or(`orDSub', `orDRSub', `orDLSub', `65536', `S1, S2')
+dnl subroutine_per_size_or(`xorDSub', `xorDRSub', `xorDLSub', `65536', `S1, S2')
+subroutine_per_size_and(`andDSub', `andDRSub', `andDSubO', `65536', `S1, S2')
+subroutine_per_size_or(`orDSub', `orDRSub', `orDSubO', `65536', `S1, S2')
+subroutine_per_size_or(`xorDSub', `xorDRSub', `xorDSubO', `65536', `S1, S2')
+DestructiveBitwise(`norDSub',`1',`0',`0',`0')
+')
+
+ifelse(ARCH,`subleqr-obsolete',`
+dnl x | y = (x & !y) + y
+@@orDSub Ad, At, As, S1, S2, Aend
+As T4; Dec T4; // T4 <- !As
+$(@@andDSub Ad, At, T4, S1, S2, LFinish);
+LFinish:T4; As T4; T4 Ad;
+T4 T4 Aend;
+T4:0;
+
+dnl x ^ y = x + y - ((x & y) << 1)
+@@xorDSub Ad, At, As, S1, S2, Aend
+At Z; As Z; Ad; Z Ad; Z;
+$(@@andDSub Td, At, As, S1, S2, LFinish);
+LFinish:Td Z; Z Td; Td Ad; Td; Z Z Aend;
+Td:0;
+
+')
+
 
 @@addRfinish A, B, Cont, Fin
-$(@@jznz Rs, Fin, F1); F1:$(@@jznz Rt, Fin, Cont);
+$(@@jznz A, Fin, F1); F1:$(@@jznz B, Fin, Cont);
 
 @@orRfinish A, B, Cont, Fin
-$(@@jznz Rs, F1, Cont); F1:$(@@jznz Rt, Fin, Cont);
+$(@@jznz A, F1, Cont); F1:$(@@jznz B, Fin, Cont);
 
 DestructiveBitwiseR(`andDRSub',`0',`0',`0',`1',`@@addRfinish')
 DestructiveBitwiseR(`orDRSub',`0',`1',`1',`1',`@@orRfinish')
 DestructiveBitwiseR(`xorDRSub',`0',`1',`1',`0',`@@orRfinish') dnl it is better to use xorRfinish
 DestructiveBitwise(`norDRSub',`1',`0',`0',`0')
+
+DestructiveBitwiseL(`andDLSub',`0',`0',`0',`1',`@@addRfinish')
+DestructiveBitwiseL(`orDLSub',`0',`1',`1',`1',`@@orRfinish')
+DestructiveBitwiseL(`xorDLSub',`0',`1',`1',`0',`@@orRfinish') dnl it is better to use xorRfinish
+DestructiveBitwise(`norDLSub',`1',`0',`0',`0')
+
 
 @@lwSub1 Rt, MAddr, Aend // Rt <- mem[-MAddr]
 MAddr X;
@@ -670,6 +794,7 @@ LNext:End; // we must fix
 LResume:Rs; T2 Rs; T2 T2;
 $(@@addc Hi, Lo, Rt, T2, Loop);
 
+ifelse(`true',`false',`
 ifelse(ARCH,`subleqr',`
 @@luiSub Rt, Imm, T0, T1, End
 Rt; T0; Imm T1; UpperOne T0;
@@ -679,6 +804,22 @@ Le:$(@@sl1m T0, Lshr);
 Lshr:$(@@srl1m Imm, Loop);
 LFinish:T0; T1 Imm; T1 T1 End;
 CH:16 UpperOne:65536;
+')
+',`true',`false',`
+ifelse(ARCH,`subleqr',`
+@@luiSub Rt, Imm, T0, T1, End
+Imm T0 Lzp;
+// Imm < 0
+$(@@sl16m T0, L1);
+L1:Rt; T0 Rt; L2:T0 T0 End;
+Lzp:Z Imm L2; $(@@sl16m T0, L1);
+')
+',`true',`true',`
+ifelse(ARCH,`subleqr',`
+@@luiSub Rt, Imm, T0, T1, Aend
+$(@@sllsub Rd, Imm, CH, T0, T1, Aend);
+CH:16;
+')
 ')
 
 PureSubleq(`@@luiSub') Rd, Imm, T0, T1, Aend
@@ -1356,3 +1497,6 @@ From;
 L1:$(@@srl1m Addr, L2);
 L2:$(@@srl1ca From, Addr, Aend);
 ')
+
+@@beqTestSub Rt, Rs, S0, Aend
+Rs S0;

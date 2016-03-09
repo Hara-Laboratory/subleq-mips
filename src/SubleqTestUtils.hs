@@ -34,6 +34,7 @@ import qualified Data.Random as R
 import qualified Data.Random.Distribution.Exponential as R
 import qualified Data.Random.Distribution.Uniform as R
 
+import Data.String
 import qualified Data.Csv as CSV
 import Data.Vector(Vector)
 import qualified Data.Vector as V
@@ -115,11 +116,26 @@ readTraceFromFile :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, S
 readTraceFromFile prefix prog filename = do
     let outputfilename = FP.replaceBaseName filename (prefix ++ FP.takeBaseName filename)
     f <- BL.readFile filename
-    either (\x -> return ()) id $ BL.writeFile outputfilename . CSV.encode . map (\(a, (b, c)) -> (a, b, c)) . M.toList <$> readTrace prog f
+    either (\x -> return ()) id $ BL.writeFile outputfilename . CSV.encode . M.toList <$> readTrace prog f
+
+readTraceFromFiles :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>FilePath -> SubleqProgram w m -> [FilePath] -> IO ()
+readTraceFromFiles output prog filenames = do
+    fs <- mapM BL.readFile filenames
+    let anss = either error id $ mapM (readTrace prog) fs :: [Map String Integer]
+    let fields = M.unionsWith M.union . map (\(name,insns) -> M.map (M.singleton name) insns) $ zip filenames anss :: Map String (Map String Integer)
+    let fields' = M.mapWithKey (\k v -> M.insert "insn" k $ M.map show v) fields
+    BL.writeFile output . CSV.encodeByName (V.fromList  $ map fromString ("insn" : filenames)) . M.elems $ fields'
 
 -- data SubleqArguments w = LoadStore w w w
 --    deriving (Show, Read, Eq, Ord)
 type SubleqArguments w = (w, w, w, w)
+
+bitReversal :: (FiniteBits a) => a -> a
+bitReversal n = foldl setBit zeroBits bs'
+    where
+      l = finiteBitSize n
+      bs = filter (testBit n) [0..(l-1)]
+      bs' = map (\x -> l - x - 1) bs
 
 parseTrace :: (Num w, Enum w, Read w)=>BL.ByteString -> Either String (Vector (String, SubleqArguments w))
 parseTrace = fmap (V.map conv) . CSV.decode CSV.NoHeader
@@ -130,6 +146,11 @@ parseTrace = fmap (V.map conv) . CSV.decode CSV.NoHeader
 traceExecute :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> [(String, SubleqArguments w)] -> [(String, Integer)]
 traceExecute prog = map (\(insn, args) -> (insn, f prog insn args))
 
+
+idealSituation = False
+idealSituationW = False
+idealSituationHB = False
+
 f :: (Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> String -> SubleqArguments w -> Integer
 f prog insn args | insn `elem` ["sb", "sh"] = load prog (ncycle insn) args + nSwSub1
                  | insn `elem` ["lbu", "lb" , "lhu", "lh"] = load prog (ncycle insn) args
@@ -139,9 +160,10 @@ f prog "addu" _ = 5
 f prog "subu" _ = 7 -- FIX
 f prog insn (_, a, b, ans) | insn `elem` ["and", "or", "xor", "nor"] = measureArith prog insn a b ans
 f prog insn (_, a, b, ans) | insn `elem` ["mult"] = measureArith prog "multu" a b ans
--- f prog "lw" [] = measureAddr prog "addrw" + nLwSub1
-f prog "lw" _  = nLwSub1 -- In case of IDEAL situation: without addres conversion.
-f prog "sw" _  = nSwSub1 -- In case of IDEAL situation
+f prog "lw" (off, addr, rd, mval) = (if idealSituationW then measureShift prog "srl" (off + addr) 2 ((off + addr) `shift` (-2)) + 4 else measureAddr prog "addrw" (off + addr) + 4) + nLwSub1
+f prog "sw" (off, addr, rd, mval) = (if idealSituationW then measureShift prog "srl" (off + addr) 2 ((off + addr) `shift` (-2)) + 4 else measureAddr prog "addrw" (off + addr) + 4) + nSwSub1
+-- f prog "lw" _  = nLwSub1 -- In case of IDEAL situation: without addres conversion.
+-- f prog "sw" _  = nSwSub1 -- In case of IDEAL situation
 
 f prog "lui" (_, r,_, _)  = measureMonadic prog "lui" r
 f prog "j" _    = 1
@@ -153,11 +175,28 @@ f prog "sltu"  (_, rs, rt, ans)  = measureArith prog "sltu" rs rt ans
 f prog "slti"  (_, rs, rt, ans)  = measureArith prog "slt" rs rt ans
 f prog "sltiu" (_, rs, rt, ans)  = measureArith prog "sltu" rs rt ans
 
+f prog "nop" _    = 1
+
 f prog insn (_, rs, rt, _) | insn `elem` ["bne", "beq"] = 2 + nJnzp (rs - rt) -- In case of IDEAL situation: Reordered instructions
 
 f prog insn (_, r, _, _) | insn `elem` ["bltz", "bgez", "beqz", "blez", "bgtz"] = nJnzp r
 
 f prog insn args    = error $ "unrecognized instruction: " ++ insn ++ " " ++ show args
+
+allTypes = [ "sb", "sh"
+           , "lbu", "lb" , "lhu", "lh"
+           , "sll", "srl", "sra"
+           , "mfxx"
+           , "addu"
+           , "subu"
+           , "and", "or", "xor", "nor"
+           , "mult"
+           , "lw" , "sw"
+           , "lui" , "j" , "jal" , "jr"
+           , "slt" , "sltu" , "slti" , "sltiu"
+           , "bne", "beq"
+           , "bltz", "bgez", "beqz", "blez", "bgtz"
+           ]
 
 
 -- traceExecute :: (Num w, Enum w, Read w, Memory w w m)=>[(String, SubleqArguments w)] -> [(String, Integer)]
@@ -165,7 +204,7 @@ load prog (addrRoutine, liRoutine, posF) (off, addr, rd, mval) = addrConv + nLwS
     where
       addr' = off + addr
       --addrConv = measureAddr prog addrRoutine addr'
-      addrConv = measureAddr prog addrRoutine addr'
+      addrConv = if idealSituationHB then 0 else measureAddr prog addrRoutine addr'
       valConv = measureLoad prog liRoutine (posF addr') mval rd
 
 measureMonadic prog sub a = measureExecutedInsns prog sub [0,a] Nothing
@@ -192,6 +231,6 @@ ncycle "lhu" = ("addrh", "lhui", \ n -> (n `mod` 4) `shift` (-1))
 ncycle "lh"  = ("addrh", "lhui", \ n -> (n `mod` 4) `shift` (-1))
 ncycle "sh"  = ("addrh", "shi",  \ n -> (n `mod` 4) `shift` (-1))
 
-readTrace :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> BL.ByteString -> Either String (Map String (Integer, Integer))
-readTrace prog trace = M.fromListWith (\(a1, b1) (a2, b2) -> (a1 + a2, b1 + b2)) . map (\(n, x) -> (n, (1, x))) . traceExecute prog . V.toList <$> parseTrace trace
+readTrace :: (Num w, Enum w, Read w, Integral w, Bits w, Memory w w m, Show w)=>SubleqProgram w m -> BL.ByteString -> Either String (Map String Integer)
+readTrace prog trace = M.unionWith (+) (M.fromList $ map (\x -> (x, 0)) allTypes) . M.fromListWith (+) . traceExecute prog . V.toList <$> parseTrace trace
 

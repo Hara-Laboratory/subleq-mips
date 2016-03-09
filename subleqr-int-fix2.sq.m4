@@ -141,6 +141,26 @@ Rs T2; Rt T3;
 $(@@norDSub  Rd, Rs, Rt, T0, T1, LFinish);
 LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
 
+@andL Rd, Rs, Rt
+Rs T2; Rt T3;
+$(@@andDLSub  Rd, Rs, Rt, T0, T1, LFinish);
+LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
+
+@orL Rd, Rs, Rt
+Rs T2; Rt T3;
+$(@@orDLSub  Rd, Rs, Rt, T0, T1, LFinish);
+LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
+
+@xorL Rd, Rs, Rt
+Rs T2; Rt T3;
+$(@@xorDLSub  Rd, Rs, Rt, T0, T1, LFinish);
+LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
+
+@norL Rd, Rs, Rt
+Rs T2; Rt T3;
+$(@@norDLSub  Rd, Rs, Rt, T0, T1, LFinish);
+LFinish:Rs; Rt; T2 Rs; T3 Rt; T2; T3 T3 End;
+
 @andR Rd, Rs, Rt
 Rs T2; Rt T3;
 $(@@andDRSub  Rd, Rs, Rt, T0, T1, LFinish);
