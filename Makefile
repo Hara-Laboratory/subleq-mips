@@ -10,28 +10,26 @@ TARGETS=subleq-int-fix2-sim subleqr-int-fix2-sim \
 		subleqr-int-fix2 subleqr-test subneg-int
 
 SQO_TARGETS=subleq-int-fix2-sim subleqr-int-fix2-sim \
-		subleq-int-fix2-sim-lw \
-		subleq-int-fix2-sim-sw \
-		subleq-int-fix2-sim-lhu \
-		subleq-int-fix2-sim-sh \
-		subleq-int-fix2-sim-lbu \
-		subleq-int-fix2-sim-sb \
-		subleqr-int-fix2-sim-lw \
-		subleqr-int-fix2-sim-sw \
-		subleqr-int-fix2-sim-lhu \
-		subleqr-int-fix2-sim-sh \
-		subleqr-int-fix2-sim-lbu \
-		subleqr-int-fix2-sim-sb \
+		subleq-int-fix2-sim-v1 \
+		subleq-int-fix2-sim-v2 \
+		subleq-int-fix2-sim-v3 \
+		subleq-int-fix2-sim-all \
+		subleqr-int-fix2-sim-v1 \
+		subleqr-int-fix2-sim-v2 \
+		subleqr-int-fix2-sim-v3 \
+		subleqr-int-fix2-sim-all \
+		subleqr-int-fix2 \
+		subleq-int-fix2 \
 
 
-.PHONY: all sq sqo expanded-sq
-all: sqo
+.PHONY: all sq sqo expanded-sq clean
+all: sq sqo
 
 sq: $(addsuffix .sq, $(TARGETS))
 
 sqo: $(addsuffix .sqo, $(SQO_TARGETS))
 
-expanded-sq: $(addsuffix .expanded.sq, $(SQO_TARGETS))
+expanded-sq: $(addsuffix .expanded.sq, $(TARGETS))
 
 %.sqo: %.sq $(SUBLEQCFG) Makefile
 	$(SUBLEQ) $(SUBLEQFLAGS) -f elf2mem -o $@ $<
@@ -42,3 +40,5 @@ expanded-sq: $(addsuffix .expanded.sq, $(SQO_TARGETS))
 %.sq: %.sq.m4 subleq-lib.sq.m4
 	m4 $< > $@
 
+clean:
+	rm $(addsuffix .sq, $(TARGETS)) $(addsuffix .sqo, $(SQO_TARGETS)) $(addsuffix .expanded.sq, $(SQO_TARGETS))
